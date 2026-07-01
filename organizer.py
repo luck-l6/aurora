@@ -475,6 +475,8 @@ class DesktopOrganizer(QWidget):
             shadow.setEnabled(True)
         self.layout().setContentsMargins(12, 12, 12, 12)
         self.update()
+        # 延迟重算球环位置（确保窗口尺寸已更新）
+        QTimer.singleShot(50, lambda: self.circle_area._update_positions(self.circle_area._btn_entries))
 
     def _set_click_through(self, enable):
         """设置窗口是否穿透点击"""
