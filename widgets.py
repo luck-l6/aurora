@@ -1263,27 +1263,27 @@ class CircleArea(QWidget):
     def _render_tick(self):
         active = self._flying_in or self._mouse_active or self._move_mode or self._dragging
         
-        # Dynamic frame rate: 30fps when active, 10fps when idle
+        # Dynamic frame rate: 30fps when active, 30fps when idle
         if active and self._is_idle:
             self._is_idle = False
             self._render_timer.setInterval(33)
             self._dirty = True
         elif not active and not self._is_idle:
             self._is_idle = True
-            self._render_timer.setInterval(50)  # 20fps idle (smooth rotation)
+            self._render_timer.setInterval(33)  # 30fps idle
         
-        # Skip most idle frames
+        # Skip some idle frames for performance
         if not active:
             if not hasattr(self, '_idle_counter'):
                 self._idle_counter = 0
             self._idle_counter += 1
-            if self._idle_counter % 3 != 0:
+            if self._idle_counter % 2 != 0:
                 return
         else:
             if hasattr(self, '_idle_counter'):
                 self._idle_counter = 0
         
-        self._phase += 0.02
+        self._phase += 0.04
         self._dirty = True
 
         # Fly-in animation
@@ -1298,7 +1298,7 @@ class CircleArea(QWidget):
             return
 
         # Slow auto-rotate (always)
-        self._angle += 0.012 if self._mouse_active else 0.005
+        self._angle += 0.015 if self._mouse_active else 0.008
         if self._mouse_active:
             ratio = (self._mouse_x - self.width() / 2) / (self.width() / 2)
             self._angle += ratio * 0.04
