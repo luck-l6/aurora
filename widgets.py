@@ -1478,11 +1478,10 @@ class CircleArea(QWidget):
         if not getattr(self, '_wallpaper_mode', False):
             # Custom background image or color (wallpaper engine)
             bg_color = self._get_data("bg_color")
-            if self._wallpaper_manager and self._wallpaper_manager.get_type() != "transparent":
+            wp_type = self._wallpaper_manager.get_type() if self._wallpaper_manager else None
+            if self._wallpaper_manager and wp_type in ("image", "video"):
                 self._wallpaper_manager.paint(painter, self.rect())
-                wp_type = self._wallpaper_manager.get_type()
-                if wp_type in ("image", "video"):
-                    painter.fillRect(0, 0, w, h, QColor(0, 0, 0, 100))
+                painter.fillRect(0, 0, w, h, QColor(0, 0, 0, 100))
             elif self._bg_pixmap and not self._bg_pixmap.isNull():
                 if self._cached_bg_size != (w, h):
                     self._cached_bg_pixmap = self._bg_pixmap.scaled(
