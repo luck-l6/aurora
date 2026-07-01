@@ -1432,7 +1432,7 @@ class DesktopOrganizer(QWidget):
                     stop:0.5 rgba(25,20,12,200),
                     stop:1 rgba(20,16,10,180));
                 border-radius: 32px;
-                border: 1px solid rgba(196,175,120,30);
+                border: 1px solid rgba(255,255,255,15);
             }
         """)
         sb_layout = QVBoxLayout(sidebar)
@@ -1445,7 +1445,7 @@ class DesktopOrganizer(QWidget):
             QPushButton {
                 background: transparent;
                 color: rgba(196,175,120,180);
-                border: 1px solid rgba(196,175,120,30);
+                border: 1px solid rgba(255,255,255,15);
                 border-radius: 22px;
                 font-size: 16px;
                 font-family: "Segoe MDL2 Assets", "Segoe UI", sans-serif;
@@ -1496,7 +1496,7 @@ class DesktopOrganizer(QWidget):
             QPushButton {
                 background: rgba(196,175,120,20);
                 color: rgba(196,175,120,200);
-                border: 1px solid rgba(196,175,120,40);
+                border: 1px solid rgba(255,255,255,20);
                 border-radius: 22px;
                 font-size: 18px;
                 font-weight: bold;
@@ -1521,7 +1521,7 @@ class DesktopOrganizer(QWidget):
             QPushButton {
                 background: rgba(196,175,120,15);
                 color: rgba(196,175,120,150);
-                border: 1px solid rgba(196,175,120,25);
+                border: 1px solid rgba(255,255,255,12);
                 border-radius: 22px;
                 font-size: 16px;
             }
@@ -2104,7 +2104,7 @@ class DesktopOrganizer(QWidget):
                     stop:0.15 rgba(20,16,10,210),
                     stop:1 rgba(15,12,8,220));
                 border-radius: 24px;
-                border: 1px solid rgba(196,175,120,35);
+                border: 1px solid rgba(255,255,255,20);
             }
         """)
         shadow = self._container.graphicsEffect()
