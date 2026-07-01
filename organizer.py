@@ -2100,9 +2100,9 @@ class DesktopOrganizer(QWidget):
         self._container.setStyleSheet("""
             QFrame {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(25,20,14,200),
-                    stop:0.15 rgba(20,16,10,210),
-                    stop:1 rgba(15,12,8,220));
+                    stop:0 rgba(15,12,25,120),
+                    stop:0.15 rgba(12,10,20,130),
+                    stop:1 rgba(8,6,15,140));
                 border-radius: 24px;
                 border: 1px solid rgba(255,255,255,20);
             }
