@@ -18,10 +18,10 @@ APP_VERSION = "1.3.0"
 
 # ── Glass UI Color Palette ───────────────────────────────────────────
 # 暖金色调方案 — 参考毛玻璃风格
-GLASS_BG_BASE = "rgba(42,31,20,220)"        # 暖深棕底色
-GLASS_BG_MID = "rgba(58,42,28,200)"         # 中层暖棕
-GLASS_BG_TOP = "rgba(70,50,32,180)"         # 顶层暖棕
-GLASS_BORDER = "rgba(196,175,120,40)"       # 微光描边
+GLASS_BG_BASE = "rgba(42,31,20,180)"        # 暖深棕底色（提高透明度）
+GLASS_BG_MID = "rgba(58,42,28,160)"         # 中层暖棕
+GLASS_BG_TOP = "rgba(80,60,38,140)"         # 顶层暖棕（更透）
+GLASS_BORDER = "rgba(196,175,120,55)"       # 微光描边（加强）
 GLASS_BORDER_HOVER = "rgba(196,175,120,80)" # hover描边
 GLASS_TEXT_PRIMARY = "rgba(255,248,235,240)" # 暖白主文字
 GLASS_TEXT_SECONDARY = "rgba(196,175,120,160)" # 金色副文字
@@ -42,7 +42,7 @@ CONTAINER_GLASS_STYLE = """
     QFrame {{
         background: qlineargradient(x1:0, y1:0, x2:0.05, y2:1,
             stop:0 {bg_top},
-            stop:0.3 {bg_mid},
+            stop:0.15 {bg_mid},
             stop:1 {bg_base});
         border-radius: 24px;
         border: 1px solid {border};
