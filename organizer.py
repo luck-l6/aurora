@@ -2027,19 +2027,20 @@ class DesktopOrganizer(QWidget):
 
     def _apply_container_style(self):
         bg_color = self.data.get("bg_color", "")
-        if bg_color == "transparent":
-            self._container.setStyleSheet(CONTAINER_TRANSPARENT_STYLE)
-            shadow = self._container.graphicsEffect()
-            if shadow:
-                shadow.setEnabled(False)
-        else:
-            self._container.setStyleSheet(CONTAINER_GLASS_STYLE)
-            shadow = self._container.graphicsEffect()
-            if shadow:
-                shadow.setEnabled(True)
-                shadow.setColor(QColor(0, 0, 0, 80))
-                shadow.setBlurRadius(40)
-                shadow.setOffset(0, 4)
+        # 全透明容器 — 玻璃效果由 CircleArea paintEvent 绘制
+        self._container.setStyleSheet("""
+            QFrame {
+                background: transparent;
+                border-radius: 24px;
+                border: 1px solid rgba(255,248,235,20);
+            }
+        """)
+        shadow = self._container.graphicsEffect()
+        if shadow:
+            shadow.setEnabled(True)
+            shadow.setColor(QColor(0, 0, 0, 80))
+            shadow.setBlurRadius(40)
+            shadow.setOffset(0, 4)
 
     def _set_transparent_bg(self):
         self.data["bg_color"] = "transparent"
