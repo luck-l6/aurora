@@ -1298,7 +1298,7 @@ class CircleArea(QWidget):
             return
 
         # Slow auto-rotate (always)
-        self._angle += 0.015 if self._mouse_active else 0.008
+        self._angle += 0.015
         if self._mouse_active:
             ratio = (self._mouse_x - self.width() / 2) / (self.width() / 2)
             self._angle += ratio * 0.04
