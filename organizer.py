@@ -1406,7 +1406,7 @@ class DesktopOrganizer(QWidget):
 
         # Content area: circle_area + right sidebar
         content_row = QHBoxLayout()
-        content_row.setSpacing(10)
+        content_row.setSpacing(12)
         content_row.setContentsMargins(0, 0, 0, 0)
 
         # Circular layout area for category buttons
@@ -1422,47 +1422,115 @@ class DesktopOrganizer(QWidget):
         self.circle_area.categoryMenuRequested.connect(self._on_category_menu)
         content_row.addWidget(self.circle_area, 1)
 
-        # Right sidebar capsule
+        # Right sidebar — 独立浮动胶囊 (参考图风格)
         sidebar = QFrame()
-        sidebar.setFixedWidth(72)
-        sidebar.setStyleSheet(SIDEBAR_STYLE)
+        sidebar.setFixedWidth(58)
+        sidebar.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 rgba(30,22,14,160),
+                    stop:0.5 rgba(25,18,10,180),
+                    stop:1 rgba(20,14,8,160));
+                border-radius: 28px;
+                border: 1px solid rgba(255,248,235,15);
+            }
+        """)
         sb_layout = QVBoxLayout(sidebar)
-        sb_layout.setContentsMargins(8, 16, 8, 16)
-        sb_layout.setSpacing(6)
+        sb_layout.setContentsMargins(7, 14, 7, 14)
+        sb_layout.setSpacing(5)
         sb_layout.setAlignment(Qt.AlignCenter)
 
-        # Sidebar buttons
+        # 圆形按钮样式
+        circle_btn_style = """
+            QPushButton {{
+                background: transparent;
+                color: rgba(196,175,120,180);
+                border: 1px solid rgba(196,175,120,30);
+                border-radius: 20px;
+                font-size: 16px;
+            }}
+            QPushButton:hover {{
+                background: rgba(196,175,120,25);
+                border-color: rgba(196,175,120,60);
+                color: rgba(255,248,235,240);
+            }}
+            QPushButton:checked {{
+                background: rgba(196,175,120,40);
+                border-color: rgba(196,175,120,80);
+                color: rgba(255,248,235,255);
+            }}
+        """
+
+        # 5个功能图标按钮
         sidebar_btns = [
-            ("＋", "新建分类", self._add_category, False),
-            ("🔍", "搜索", lambda: self.search_box.setFocus(), False),
-            ("≡", "规则", self._show_rules_dialog, False),
-            ("↺", "撤销", self._show_undo_dialog, False),
-            ("◐", "背景", self._customize_bg, False),
-            ("◎", "皮肤", self._pick_skin, False),
+            ("◎", "球体皮肤", self._pick_skin),
+            ("◐", "背景", self._customize_bg),
+            ("≡", "规则", self._show_rules_dialog),
+            ("↺", "撤销", self._show_undo_dialog),
+            ("🔍", "搜索", lambda: self.search_box.setFocus()),
         ]
         self._sidebar_btns = []
-        for icon, tip, handler, checkable in sidebar_btns:
+        for icon, tip, handler in sidebar_btns:
             btn = QPushButton(icon)
-            btn.setFixedSize(52, 52)
+            btn.setFixedSize(40, 40)
             btn.setToolTip(tip)
             btn.setCursor(Qt.PointingHandCursor)
-            btn.setStyleSheet(SIDEBAR_BTN_STYLE)
-            if checkable:
-                btn.setCheckable(True)
+            btn.setStyleSheet(circle_btn_style)
             btn.clicked.connect(handler)
             sb_layout.addWidget(btn)
             self._sidebar_btns.append(btn)
 
+        # 分隔线
+        sep_line = QFrame()
+        sep_line.setFixedSize(24, 1)
+        sep_line.setStyleSheet("background: rgba(196,175,120,25); border: none;")
+        sb_layout.addWidget(sep_line, alignment=Qt.AlignCenter)
+
+        # 新建分类按钮（突出显示）
+        btn_add = QPushButton("＋")
+        btn_add.setFixedSize(40, 40)
+        btn_add.setToolTip("新建分类")
+        btn_add.setCursor(Qt.PointingHandCursor)
+        btn_add.setStyleSheet("""
+            QPushButton {
+                background: rgba(196,175,120,20);
+                color: rgba(196,175,120,200);
+                border: 1px solid rgba(196,175,120,40);
+                border-radius: 20px;
+                font-size: 18px;
+            }
+            QPushButton:hover {
+                background: rgba(196,175,120,40);
+                border-color: rgba(196,175,120,80);
+                color: rgba(255,248,235,255);
+            }
+        """)
+        btn_add.clicked.connect(self._add_category)
+        sb_layout.addWidget(btn_add)
+
         sb_layout.addStretch()
 
-        # Exit button at bottom
-        btn_power = QPushButton("⏻")
-        btn_power.setFixedSize(52, 52)
-        btn_power.setToolTip("退出")
-        btn_power.setCursor(Qt.PointingHandCursor)
-        btn_power.setStyleSheet(SIDEBAR_BTN_STYLE)
-        btn_power.clicked.connect(self._save_and_close)
-        sb_layout.addWidget(btn_power)
+        # 底部箭头按钮（参考图风格）
+        btn_exit = QPushButton("→")
+        btn_exit.setFixedSize(40, 40)
+        btn_exit.setToolTip("退出")
+        btn_exit.setCursor(Qt.PointingHandCursor)
+        btn_exit.setStyleSheet("""
+            QPushButton {
+                background: rgba(196,175,120,15);
+                color: rgba(196,175,120,150);
+                border: 1px solid rgba(196,175,120,25);
+                border-radius: 20px;
+                font-size: 16px;
+            }
+            QPushButton:hover {
+                background: rgba(200,80,60,40);
+                border-color: rgba(200,80,60,60);
+                color: rgba(255,200,180,240);
+            }
+        """)
+        btn_exit.clicked.connect(self._save_and_close)
+        sb_layout.addWidget(btn_exit)
 
         content_row.addWidget(sidebar)
         self._sidebar = sidebar
