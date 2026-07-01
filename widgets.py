@@ -1518,25 +1518,14 @@ class CircleArea(QWidget):
                 self._cached_vignette_size = (w, h)
             painter.fillRect(0, 0, w, h, self._cached_vignette)
 
-            # Glass highlight — 顶部边缘反光（模拟光线穿过玻璃）
+            # Glass highlight — 顶部极淡渐变（模拟薄纱透光）
             if not hasattr(self, '_cached_glass_hl') or self._cached_glass_hl_size != (w, h):
-                hl = QLinearGradient(0, 0, 0, h * 0.15)
-                hl.setColorAt(0, QColor(255, 248, 235, 25))
-                hl.setColorAt(0.3, QColor(255, 248, 235, 10))
+                hl = QLinearGradient(0, 0, 0, h * 0.08)
+                hl.setColorAt(0, QColor(255, 248, 235, 12))
                 hl.setColorAt(1, QColor(255, 248, 235, 0))
                 self._cached_glass_hl = QBrush(hl)
                 self._cached_glass_hl_size = (w, h)
             painter.fillRect(0, 0, w, h, self._cached_glass_hl)
-
-            # Glass edge highlight — 左上角弧形高光
-            if not hasattr(self, '_cached_edge_hl') or self._cached_edge_hl_size != (w, h):
-                edge = QRadialGradient(w * 0.15, h * 0.1, max(w, h) * 0.4, w * 0.15, h * 0.1)
-                edge.setColorAt(0, QColor(255, 248, 235, 15))
-                edge.setColorAt(0.5, QColor(255, 248, 235, 5))
-                edge.setColorAt(1, QColor(255, 248, 235, 0))
-                self._cached_edge_hl = QBrush(edge)
-                self._cached_edge_hl_size = (w, h)
-            painter.fillRect(0, 0, w, h, self._cached_edge_hl)
 
             # ── 多层暖金装饰背景 ──
             r = min(cx, cy) - 30

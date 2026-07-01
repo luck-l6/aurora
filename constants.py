@@ -17,12 +17,12 @@ COLLECT_DIR.mkdir(exist_ok=True)
 APP_VERSION = "1.3.0"
 
 # ── Glass UI Color Palette ───────────────────────────────────────────
-# 暖金色调方案 — 参考毛玻璃风格
-GLASS_BG_BASE = "rgba(42,31,20,180)"        # 暖深棕底色（提高透明度）
-GLASS_BG_MID = "rgba(58,42,28,160)"         # 中层暖棕
-GLASS_BG_TOP = "rgba(80,60,38,140)"         # 顶层暖棕（更透）
-GLASS_BORDER = "rgba(196,175,120,55)"       # 微光描边（加强）
-GLASS_BORDER_HOVER = "rgba(196,175,120,80)" # hover描边
+# 暖金色调方案 — 参考图玻璃效果：极透明薄纱感
+GLASS_BG_BASE = "rgba(30,22,14,90)"         # 极透明暖棕底
+GLASS_BG_MID = "rgba(40,30,18,70)"          # 中层更透
+GLASS_BG_TOP = "rgba(55,40,25,50)"          # 顶层最透
+GLASS_BORDER = "rgba(255,248,235,18)"       # 极淡白色边框
+GLASS_BORDER_HOVER = "rgba(255,248,235,30)" # hover描边
 GLASS_TEXT_PRIMARY = "rgba(255,248,235,240)" # 暖白主文字
 GLASS_TEXT_SECONDARY = "rgba(196,175,120,160)" # 金色副文字
 GLASS_TEXT_DIM = "rgba(196,175,120,90)"      # 暗金辅助文字
@@ -40,9 +40,9 @@ GLASS_SHADOW = "rgba(0,0,0,120)"            # 柔和阴影
 # ── Container Style (frosted glass) ─────────────────────────────────
 CONTAINER_GLASS_STYLE = """
     QFrame {{
-        background: qlineargradient(x1:0, y1:0, x2:0.05, y2:1,
+        background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
             stop:0 {bg_top},
-            stop:0.15 {bg_mid},
+            stop:0.5 {bg_mid},
             stop:1 {bg_base});
         border-radius: 24px;
         border: 1px solid {border};
@@ -119,8 +119,8 @@ SIDEBAR_BTN_STYLE = """
         background: transparent;
         color: {text};
         border: none;
-        border-radius: 18px;
-        font-size: 16px;
+        border-radius: 22px;
+        font-size: 20px;
     }}
     QPushButton:hover {{
         background: {hover};

@@ -1347,9 +1347,9 @@ class DesktopOrganizer(QWidget):
         self._container = container
         self._apply_container_style()
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(50)
-        shadow.setColor(QColor(0, 0, 0, 120))
-        shadow.setOffset(0, 6)
+        shadow.setBlurRadius(40)
+        shadow.setColor(QColor(0, 0, 0, 80))
+        shadow.setOffset(0, 4)
         container.setGraphicsEffect(shadow)
 
         c_layout = QVBoxLayout(container)
@@ -1424,11 +1424,11 @@ class DesktopOrganizer(QWidget):
 
         # Right sidebar capsule
         sidebar = QFrame()
-        sidebar.setFixedWidth(56)
+        sidebar.setFixedWidth(72)
         sidebar.setStyleSheet(SIDEBAR_STYLE)
         sb_layout = QVBoxLayout(sidebar)
-        sb_layout.setContentsMargins(6, 12, 6, 12)
-        sb_layout.setSpacing(4)
+        sb_layout.setContentsMargins(8, 16, 8, 16)
+        sb_layout.setSpacing(6)
         sb_layout.setAlignment(Qt.AlignCenter)
 
         # Sidebar buttons
@@ -1443,7 +1443,7 @@ class DesktopOrganizer(QWidget):
         self._sidebar_btns = []
         for icon, tip, handler, checkable in sidebar_btns:
             btn = QPushButton(icon)
-            btn.setFixedSize(44, 44)
+            btn.setFixedSize(52, 52)
             btn.setToolTip(tip)
             btn.setCursor(Qt.PointingHandCursor)
             btn.setStyleSheet(SIDEBAR_BTN_STYLE)
@@ -1457,7 +1457,7 @@ class DesktopOrganizer(QWidget):
 
         # Exit button at bottom
         btn_power = QPushButton("⏻")
-        btn_power.setFixedSize(44, 44)
+        btn_power.setFixedSize(52, 52)
         btn_power.setToolTip("退出")
         btn_power.setCursor(Qt.PointingHandCursor)
         btn_power.setStyleSheet(SIDEBAR_BTN_STYLE)
@@ -2037,9 +2037,9 @@ class DesktopOrganizer(QWidget):
             shadow = self._container.graphicsEffect()
             if shadow:
                 shadow.setEnabled(True)
-                shadow.setColor(QColor(0, 0, 0, 120))
-                shadow.setBlurRadius(50)
-                shadow.setOffset(0, 6)
+                shadow.setColor(QColor(0, 0, 0, 80))
+                shadow.setBlurRadius(40)
+                shadow.setOffset(0, 4)
 
     def _set_transparent_bg(self):
         self.data["bg_color"] = "transparent"
