@@ -17,24 +17,24 @@ COLLECT_DIR.mkdir(exist_ok=True)
 APP_VERSION = "1.3.0"
 
 # ── Glass UI Color Palette ───────────────────────────────────────────
-# 暖金色调方案 — 参考图玻璃效果：极透明薄纱感
+# 白银色调方案 — 干净现代
 GLASS_BG_BASE = "rgba(30,22,14,90)"         # 极透明暖棕底
 GLASS_BG_MID = "rgba(40,30,18,70)"          # 中层更透
 GLASS_BG_TOP = "rgba(55,40,25,50)"          # 顶层最透
 GLASS_BORDER = "rgba(255,248,235,18)"       # 极淡白色边框
 GLASS_BORDER_HOVER = "rgba(255,248,235,30)" # hover描边
-GLASS_TEXT_PRIMARY = "rgba(255,248,235,240)" # 暖白主文字
-GLASS_TEXT_SECONDARY = "rgba(196,175,120,160)" # 金色副文字
-GLASS_TEXT_DIM = "rgba(196,175,120,90)"      # 暗金辅助文字
-GLASS_ACCENT = "rgba(196,175,120,1.0)"      # 强调金色
-GLASS_SEARCH_BG = "rgba(255,248,235,10)"    # 搜索框底
-GLASS_SEARCH_BORDER = "rgba(196,175,120,25)" # 搜索框边
-GLASS_SEARCH_FOCUS = "rgba(196,175,120,80)" # 搜索框聚焦
+GLASS_TEXT_PRIMARY = "rgba(255,255,255,240)" # 纯白主文字
+GLASS_TEXT_SECONDARY = "rgba(255,255,255,140)" # 白色副文字
+GLASS_TEXT_DIM = "rgba(255,255,255,80)"      # 暗白辅助文字
+GLASS_ACCENT = "rgba(255,255,255,1.0)"      # 强调白色
+GLASS_SEARCH_BG = "rgba(255,255,255,8)"     # 搜索框底
+GLASS_SEARCH_BORDER = "rgba(255,255,255,18)" # 搜索框边
+GLASS_SEARCH_FOCUS = "rgba(255,255,255,50)" # 搜索框聚焦
 GLASS_SIDEBAR_BG = "rgba(42,31,20,160)"     # 侧栏底
-GLASS_SIDEBAR_BORDER = "rgba(196,175,120,30)" # 侧栏描边
-GLASS_TOOL_BG = "rgba(255,248,235,8)"       # 工具按钮底
-GLASS_TOOL_HOVER = "rgba(196,175,120,30)"   # 工具按钮hover
-GLASS_TOOL_ACTIVE = "rgba(196,175,120,60)"  # 工具按钮active
+GLASS_SIDEBAR_BORDER = "rgba(255,255,255,15)" # 侧栏描边
+GLASS_TOOL_BG = "rgba(255,255,255,8)"       # 工具按钮底
+GLASS_TOOL_HOVER = "rgba(255,255,255,20)"   # 工具按钮hover
+GLASS_TOOL_ACTIVE = "rgba(255,255,255,40)"  # 工具按钮active
 GLASS_SHADOW = "rgba(0,0,0,120)"            # 柔和阴影
 
 # ── Container Style (frosted glass) ─────────────────────────────────

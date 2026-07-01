@@ -1524,9 +1524,9 @@ class CircleArea(QWidget):
             # 层0: 大范围暖色光晕（底层氛围）
             painter.setPen(Qt.NoPen)
             ambient = QRadialGradient(cx, cy, r * 1.2, cx, cy)
-            ambient.setColorAt(0, QColor(196, 175, 120, 18))
-            ambient.setColorAt(0.4, QColor(196, 175, 120, 8))
-            ambient.setColorAt(0.8, QColor(196, 175, 120, 2))
+            ambient.setColorAt(0, QColor(255, 255, 255, 15))
+            ambient.setColorAt(0.4, QColor(255, 255, 255, 6))
+            ambient.setColorAt(0.8, QColor(255, 255, 255, 2))
             ambient.setColorAt(1.0, QColor(0, 0, 0, 0))
             painter.setBrush(ambient)
             painter.drawEllipse(int(cx - r * 1.2), int(cy - r * 1.2),
@@ -1541,7 +1541,7 @@ class CircleArea(QWidget):
                 x2 = cx + int(r * math.cos(angle))
                 y2 = cy + int(r * math.sin(angle))
                 alpha = int(18 + 8 * math.sin(self._phase * 0.5 + i))
-                painter.setPen(QPen(QColor(196, 175, 120, alpha), 0.6))
+                painter.setPen(QPen(QColor(255, 255, 255, alpha), 0.6))
                 painter.drawLine(x1, y1, x2, y2)
             painter.restore()
 
@@ -1555,7 +1555,7 @@ class CircleArea(QWidget):
             ]
             for ring_r, pulse_speed, base_alpha, line_w in rings:
                 glow = int(base_alpha + 12 * math.sin(self._phase * pulse_speed))
-                painter.setPen(QPen(QColor(196, 175, 120, glow), line_w))
+                painter.setPen(QPen(QColor(255, 255, 255, glow), line_w))
                 painter.setBrush(Qt.NoBrush)
                 painter.drawEllipse(int(cx - ring_r), int(cy - ring_r),
                                    int(ring_r * 2), int(ring_r * 2))
@@ -1563,9 +1563,9 @@ class CircleArea(QWidget):
             # 层3: 中心暖金光晕（更强）
             center_glow = QRadialGradient(cx, cy, r * 0.45, cx, cy)
             pulse_intensity = 0.15 + 0.08 * math.sin(self._phase * 0.8)
-            center_glow.setColorAt(0, QColor(220, 195, 140, int(255 * pulse_intensity)))
-            center_glow.setColorAt(0.3, QColor(196, 175, 120, int(255 * pulse_intensity * 0.5)))
-            center_glow.setColorAt(0.7, QColor(196, 175, 120, int(255 * pulse_intensity * 0.1)))
+            center_glow.setColorAt(0, QColor(255, 255, 255, int(255 * pulse_intensity)))
+            center_glow.setColorAt(0.3, QColor(255, 255, 255, int(255 * pulse_intensity * 0.5)))
+            center_glow.setColorAt(0.7, QColor(255, 255, 255, int(255 * pulse_intensity * 0.1)))
             center_glow.setColorAt(1, QColor(0, 0, 0, 0))
             painter.setPen(Qt.NoPen)
             painter.setBrush(center_glow)
@@ -1581,7 +1581,7 @@ class CircleArea(QWidget):
                 dx = cx + int(dot_r * math.cos(dot_angle))
                 dy = cy + int(dot_r * math.sin(dot_angle))
                 dot_alpha = int(50 + 30 * math.sin(self._phase + i * 0.7))
-                painter.setBrush(QColor(196, 175, 120, dot_alpha))
+                painter.setBrush(QColor(255, 255, 255, dot_alpha))
                 painter.drawEllipse(dx - 2, dy - 2, 4, 4)
             # 内圈
             for i in range(8):
@@ -1590,11 +1590,11 @@ class CircleArea(QWidget):
                 dx = cx + int(dot_r * math.cos(dot_angle))
                 dy = cy + int(dot_r * math.sin(dot_angle))
                 dot_alpha = int(35 + 20 * math.sin(self._phase * 1.2 + i))
-                painter.setBrush(QColor(220, 200, 150, dot_alpha))
+                painter.setBrush(QColor(255, 255, 255, dot_alpha))
                 painter.drawEllipse(dx - 1, dy - 1, 3, 3)
 
             # 层5: 中心文字（暖金色）
-            painter.setPen(QColor(196, 175, 120, 70))
+            painter.setPen(QColor(255, 255, 255, 70))
             painter.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
             painter.drawText(QRectF(cx - 70, cy - 20, 140, 40), Qt.AlignCenter, "桌面收纳")
 
@@ -1626,7 +1626,7 @@ class CircleArea(QWidget):
             painter.drawText(lx, ly, tw, fm.height(), Qt.AlignCenter, label)
             # Count below name
             if count > 0:
-                painter.setPen(QColor(196, 175, 120, int(120 * opacity)))
+                painter.setPen(QColor(255, 255, 255, int(120 * opacity)))
                 painter.setFont(QFont("Microsoft YaHei", 7))
                 count_text = f"{count} 个应用"
                 ctw = fm.horizontalAdvance(count_text)
@@ -1656,7 +1656,7 @@ class CircleArea(QWidget):
                     painter.setPen(Qt.NoPen)
                     painter.setBrush(QColor(42, 31, 20, 220))
                     painter.drawRoundedRect(tx - 2, ty - 2, tw + 4, th + 4, 8, 8)
-                    painter.setPen(QPen(QColor(196, 175, 120, 60), 1))
+                    painter.setPen(QPen(QColor(255, 255, 255, 40), 1))
                     painter.setBrush(Qt.NoBrush)
                     painter.drawRoundedRect(tx - 2, ty - 2, tw + 4, th + 4, 8, 8)
                     painter.setOpacity(1.0)

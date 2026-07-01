@@ -1444,21 +1444,21 @@ class DesktopOrganizer(QWidget):
         circle_btn_style = """
             QPushButton {
                 background: transparent;
-                color: rgba(196,175,120,180);
+                color: rgba(255,255,255,180);
                 border: 1px solid rgba(255,255,255,15);
                 border-radius: 22px;
                 font-size: 16px;
                 font-family: "Segoe MDL2 Assets", "Segoe UI", sans-serif;
             }
             QPushButton:hover {
-                background: rgba(196,175,120,25);
-                border-color: rgba(196,175,120,60);
-                color: rgba(255,248,235,240);
+                background: rgba(255,255,255,20);
+                border-color: rgba(255,255,255,40);
+                color: rgba(255,255,255,240);
             }
             QPushButton:checked {
-                background: rgba(196,175,120,40);
-                border-color: rgba(196,175,120,80);
-                color: rgba(255,248,235,255);
+                background: rgba(255,255,255,30);
+                border-color: rgba(255,255,255,60);
+                color: rgba(255,255,255,255);
             }
         """
 
@@ -1484,7 +1484,7 @@ class DesktopOrganizer(QWidget):
         # 分隔线
         sep_line = QFrame()
         sep_line.setFixedSize(24, 1)
-        sep_line.setStyleSheet("background: rgba(196,175,120,25); border: none;")
+        sep_line.setStyleSheet("background: rgba(255,255,255,20); border: none;")
         sb_layout.addWidget(sep_line, alignment=Qt.AlignCenter)
 
         # 新建分类按钮
@@ -1494,17 +1494,17 @@ class DesktopOrganizer(QWidget):
         btn_add.setCursor(Qt.PointingHandCursor)
         btn_add.setStyleSheet("""
             QPushButton {
-                background: rgba(196,175,120,20);
-                color: rgba(196,175,120,200);
+                background: rgba(255,255,255,15);
+                color: rgba(255,255,255,200);
                 border: 1px solid rgba(255,255,255,20);
                 border-radius: 22px;
                 font-size: 18px;
                 font-weight: bold;
             }
             QPushButton:hover {
-                background: rgba(196,175,120,40);
-                border-color: rgba(196,175,120,80);
-                color: rgba(255,248,235,255);
+                background: rgba(255,255,255,30);
+                border-color: rgba(255,255,255,50);
+                color: rgba(255,255,255,255);
             }
         """)
         btn_add.clicked.connect(self._add_category)
@@ -1519,8 +1519,8 @@ class DesktopOrganizer(QWidget):
         btn_exit.setCursor(Qt.PointingHandCursor)
         btn_exit.setStyleSheet("""
             QPushButton {
-                background: rgba(196,175,120,15);
-                color: rgba(196,175,120,150);
+                background: rgba(255,255,255,10);
+                color: rgba(255,255,255,150);
                 border: 1px solid rgba(255,255,255,12);
                 border-radius: 22px;
                 font-size: 16px;
