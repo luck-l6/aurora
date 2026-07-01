@@ -1424,20 +1424,20 @@ class DesktopOrganizer(QWidget):
 
         # Right sidebar — 液态玻璃胶囊
         sidebar = QFrame()
-        sidebar.setFixedWidth(58)
+        sidebar.setFixedWidth(68)
         sidebar.setStyleSheet("""
             QFrame {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                     stop:0 rgba(35,28,18,180),
                     stop:0.5 rgba(25,20,12,200),
                     stop:1 rgba(20,16,10,180));
-                border-radius: 28px;
+                border-radius: 32px;
                 border: 1px solid rgba(196,175,120,30);
             }
         """)
         sb_layout = QVBoxLayout(sidebar)
-        sb_layout.setContentsMargins(7, 14, 7, 14)
-        sb_layout.setSpacing(5)
+        sb_layout.setContentsMargins(9, 18, 9, 18)
+        sb_layout.setSpacing(8)
         sb_layout.setAlignment(Qt.AlignCenter)
 
         # 圆形按钮样式
@@ -1446,8 +1446,8 @@ class DesktopOrganizer(QWidget):
                 background: transparent;
                 color: rgba(196,175,120,180);
                 border: 1px solid rgba(196,175,120,30);
-                border-radius: 20px;
-                font-size: 15px;
+                border-radius: 22px;
+                font-size: 16px;
                 font-family: "Segoe MDL2 Assets", "Segoe UI", sans-serif;
             }
             QPushButton:hover {
@@ -1462,7 +1462,7 @@ class DesktopOrganizer(QWidget):
             }
         """
 
-        # 5个功能图标按钮 (用文字代替emoji)
+        # 5个功能图标按钮
         sidebar_btns = [
             ("O", "球体皮肤", self._pick_skin),
             ("#", "背景", self._customize_bg),
@@ -1473,7 +1473,7 @@ class DesktopOrganizer(QWidget):
         self._sidebar_btns = []
         for icon, tip, handler in sidebar_btns:
             btn = QPushButton(icon)
-            btn.setFixedSize(40, 40)
+            btn.setFixedSize(44, 44)
             btn.setToolTip(tip)
             btn.setCursor(Qt.PointingHandCursor)
             btn.setStyleSheet(circle_btn_style)
@@ -1489,7 +1489,7 @@ class DesktopOrganizer(QWidget):
 
         # 新建分类按钮（突出显示）
         btn_add = QPushButton("+")
-        btn_add.setFixedSize(40, 40)
+        btn_add.setFixedSize(44, 44)
         btn_add.setToolTip("新建分类")
         btn_add.setCursor(Qt.PointingHandCursor)
         btn_add.setStyleSheet("""
@@ -1514,7 +1514,7 @@ class DesktopOrganizer(QWidget):
 
         # 底部箭头按钮（参考图风格）
         btn_exit = QPushButton(">")
-        btn_exit.setFixedSize(40, 40)
+        btn_exit.setFixedSize(44, 44)
         btn_exit.setToolTip("退出")
         btn_exit.setCursor(Qt.PointingHandCursor)
         btn_exit.setStyleSheet("""
