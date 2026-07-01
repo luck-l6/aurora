@@ -1422,17 +1422,17 @@ class DesktopOrganizer(QWidget):
         self.circle_area.categoryMenuRequested.connect(self._on_category_menu)
         content_row.addWidget(self.circle_area, 1)
 
-        # Right sidebar — 独立浮动胶囊 (参考图风格)
+        # Right sidebar — 液态玻璃胶囊
         sidebar = QFrame()
         sidebar.setFixedWidth(58)
         sidebar.setStyleSheet("""
             QFrame {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(30,22,14,160),
-                    stop:0.5 rgba(25,18,10,180),
-                    stop:1 rgba(20,14,8,160));
+                    stop:0 rgba(35,28,18,180),
+                    stop:0.5 rgba(25,20,12,200),
+                    stop:1 rgba(20,16,10,180));
                 border-radius: 28px;
-                border: 1px solid rgba(255,248,235,15);
+                border: 1px solid rgba(196,175,120,30);
             }
         """)
         sb_layout = QVBoxLayout(sidebar)
@@ -1442,32 +1442,33 @@ class DesktopOrganizer(QWidget):
 
         # 圆形按钮样式
         circle_btn_style = """
-            QPushButton {{
+            QPushButton {
                 background: transparent;
                 color: rgba(196,175,120,180);
                 border: 1px solid rgba(196,175,120,30);
                 border-radius: 20px;
-                font-size: 16px;
-            }}
-            QPushButton:hover {{
+                font-size: 15px;
+                font-family: "Segoe MDL2 Assets", "Segoe UI", sans-serif;
+            }
+            QPushButton:hover {
                 background: rgba(196,175,120,25);
                 border-color: rgba(196,175,120,60);
                 color: rgba(255,248,235,240);
-            }}
-            QPushButton:checked {{
+            }
+            QPushButton:checked {
                 background: rgba(196,175,120,40);
                 border-color: rgba(196,175,120,80);
                 color: rgba(255,248,235,255);
-            }}
+            }
         """
 
-        # 5个功能图标按钮
+        # 5个功能图标按钮 (用文字代替emoji)
         sidebar_btns = [
-            ("◎", "球体皮肤", self._pick_skin),
-            ("◐", "背景", self._customize_bg),
-            ("≡", "规则", self._show_rules_dialog),
-            ("↺", "撤销", self._show_undo_dialog),
-            ("🔍", "搜索", lambda: self.search_box.setFocus()),
+            ("O", "球体皮肤", self._pick_skin),
+            ("#", "背景", self._customize_bg),
+            ("=", "规则", self._show_rules_dialog),
+            ("U", "撤销", self._show_undo_dialog),
+            ("Q", "搜索", lambda: self.search_box.setFocus()),
         ]
         self._sidebar_btns = []
         for icon, tip, handler in sidebar_btns:
@@ -1487,7 +1488,7 @@ class DesktopOrganizer(QWidget):
         sb_layout.addWidget(sep_line, alignment=Qt.AlignCenter)
 
         # 新建分类按钮（突出显示）
-        btn_add = QPushButton("＋")
+        btn_add = QPushButton("+")
         btn_add.setFixedSize(40, 40)
         btn_add.setToolTip("新建分类")
         btn_add.setCursor(Qt.PointingHandCursor)
@@ -1498,6 +1499,7 @@ class DesktopOrganizer(QWidget):
                 border: 1px solid rgba(196,175,120,40);
                 border-radius: 20px;
                 font-size: 18px;
+                font-weight: bold;
             }
             QPushButton:hover {
                 background: rgba(196,175,120,40);
@@ -1511,7 +1513,7 @@ class DesktopOrganizer(QWidget):
         sb_layout.addStretch()
 
         # 底部箭头按钮（参考图风格）
-        btn_exit = QPushButton("→")
+        btn_exit = QPushButton(">")
         btn_exit.setFixedSize(40, 40)
         btn_exit.setToolTip("退出")
         btn_exit.setCursor(Qt.PointingHandCursor)
@@ -2094,21 +2096,23 @@ class DesktopOrganizer(QWidget):
             self.circle_area.update()
 
     def _apply_container_style(self):
-        bg_color = self.data.get("bg_color", "")
-        # 全透明容器 — 玻璃效果由 CircleArea paintEvent 绘制
+        # 液态玻璃效果：深色半透明 + 顶部渐变高光
         self._container.setStyleSheet("""
             QFrame {
-                background: transparent;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 rgba(25,20,14,200),
+                    stop:0.15 rgba(20,16,10,210),
+                    stop:1 rgba(15,12,8,220));
                 border-radius: 24px;
-                border: 1px solid rgba(255,248,235,20);
+                border: 1px solid rgba(196,175,120,35);
             }
         """)
         shadow = self._container.graphicsEffect()
         if shadow:
             shadow.setEnabled(True)
-            shadow.setColor(QColor(0, 0, 0, 80))
-            shadow.setBlurRadius(40)
-            shadow.setOffset(0, 4)
+            shadow.setColor(QColor(0, 0, 0, 100))
+            shadow.setBlurRadius(45)
+            shadow.setOffset(0, 5)
 
     def _set_transparent_bg(self):
         self.data["bg_color"] = "transparent"

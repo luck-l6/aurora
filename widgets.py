@@ -1476,30 +1476,6 @@ class CircleArea(QWidget):
 
         # 壁纸模式：跳过背景和装饰，只画球体
         if not getattr(self, '_wallpaper_mode', False):
-            # ── 玻璃面板背景（直接绘制在 CircleArea）──
-            # 模拟参考图：极透明暖色薄纱 + 边缘微光
-            margin = 0
-            panel_rect = (margin, margin, w - margin * 2, h - margin * 2)
-            px, py, pw, ph = panel_rect
-
-            # 底层：极透明暖色填充
-            painter.setPen(Qt.NoPen)
-            painter.setBrush(QColor(30, 22, 14, 70))
-            painter.drawRoundedRect(px, py, pw, ph, 24, 24)
-
-            # 中层：从上到下渐变（顶部稍亮，模拟光线）
-            glass_grad = QLinearGradient(0, py, 0, py + ph * 0.3)
-            glass_grad.setColorAt(0, QColor(255, 248, 235, 10))
-            glass_grad.setColorAt(0.5, QColor(255, 248, 235, 4))
-            glass_grad.setColorAt(1, QColor(255, 248, 235, 0))
-            painter.setBrush(glass_grad)
-            painter.drawRoundedRect(px, py, pw, ph, 24, 24)
-
-            # 顶部边缘高光（极淡白色弧线）
-            painter.setPen(QPen(QColor(255, 248, 235, 25), 1))
-            painter.setBrush(Qt.NoBrush)
-            painter.drawRoundedRect(px + 1, py + 1, pw - 2, ph - 2, 23, 23)
-
             # Custom background image or color (wallpaper engine)
             bg_color = self._get_data("bg_color")
             if self._wallpaper_manager and self._wallpaper_manager.get_type() != "transparent":
@@ -1521,13 +1497,13 @@ class CircleArea(QWidget):
             elif bg_color and bg_color != "transparent":
                 painter.fillRect(0, 0, w, h, QColor(bg_color))
             else:
-                # 默认暖色氛围背景（作为"透过来"的内容）
+                # 默认暖色氛围背景
                 if self._cached_bg_size != (w, h):
                     amb = QRadialGradient(cx * 0.8, cy * 0.7, max(w, h) * 0.7, cx, cy)
-                    amb.setColorAt(0, QColor(80, 55, 30, 80))
-                    amb.setColorAt(0.3, QColor(60, 42, 22, 60))
-                    amb.setColorAt(0.6, QColor(40, 28, 16, 40))
-                    amb.setColorAt(1.0, QColor(20, 14, 8, 20))
+                    amb.setColorAt(0, QColor(60, 42, 24, 50))
+                    amb.setColorAt(0.4, QColor(40, 28, 16, 30))
+                    amb.setColorAt(0.8, QColor(25, 18, 10, 15))
+                    amb.setColorAt(1.0, QColor(0, 0, 0, 0))
                     self._cached_ambient = QBrush(amb)
                     self._cached_bg_size = (w, h)
                 painter.fillRect(0, 0, w, h, self._cached_ambient)
