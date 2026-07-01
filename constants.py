@@ -14,7 +14,164 @@ CHANGELOG_FILE = _BASE_DIR / "organizer_changelog.json"
 COLLECT_DIR = _BASE_DIR / "collected"
 COLLECT_DIR.mkdir(exist_ok=True)
 
-APP_VERSION = "1.2.0"
+APP_VERSION = "1.3.0"
+
+# ── Glass UI Color Palette ───────────────────────────────────────────
+# 暖金色调方案 — 参考毛玻璃风格
+GLASS_BG_BASE = "rgba(42,31,20,220)"        # 暖深棕底色
+GLASS_BG_MID = "rgba(58,42,28,200)"         # 中层暖棕
+GLASS_BG_TOP = "rgba(70,50,32,180)"         # 顶层暖棕
+GLASS_BORDER = "rgba(196,175,120,40)"       # 微光描边
+GLASS_BORDER_HOVER = "rgba(196,175,120,80)" # hover描边
+GLASS_TEXT_PRIMARY = "rgba(255,248,235,240)" # 暖白主文字
+GLASS_TEXT_SECONDARY = "rgba(196,175,120,160)" # 金色副文字
+GLASS_TEXT_DIM = "rgba(196,175,120,90)"      # 暗金辅助文字
+GLASS_ACCENT = "rgba(196,175,120,1.0)"      # 强调金色
+GLASS_SEARCH_BG = "rgba(255,248,235,10)"    # 搜索框底
+GLASS_SEARCH_BORDER = "rgba(196,175,120,25)" # 搜索框边
+GLASS_SEARCH_FOCUS = "rgba(196,175,120,80)" # 搜索框聚焦
+GLASS_SIDEBAR_BG = "rgba(42,31,20,160)"     # 侧栏底
+GLASS_SIDEBAR_BORDER = "rgba(196,175,120,30)" # 侧栏描边
+GLASS_TOOL_BG = "rgba(255,248,235,8)"       # 工具按钮底
+GLASS_TOOL_HOVER = "rgba(196,175,120,30)"   # 工具按钮hover
+GLASS_TOOL_ACTIVE = "rgba(196,175,120,60)"  # 工具按钮active
+GLASS_SHADOW = "rgba(0,0,0,120)"            # 柔和阴影
+
+# ── Container Style (frosted glass) ─────────────────────────────────
+CONTAINER_GLASS_STYLE = """
+    QFrame {{
+        background: qlineargradient(x1:0, y1:0, x2:0.05, y2:1,
+            stop:0 {bg_top},
+            stop:0.3 {bg_mid},
+            stop:1 {bg_base});
+        border-radius: 24px;
+        border: 1px solid {border};
+    }}
+""".format(
+    bg_top=GLASS_BG_TOP, bg_mid=GLASS_BG_MID,
+    bg_base=GLASS_BG_BASE, border=GLASS_BORDER
+)
+
+CONTAINER_TRANSPARENT_STYLE = """
+    QFrame {
+        background: transparent;
+        border-radius: 24px;
+        border: 1px solid rgba(255,255,255,10);
+    }
+"""
+
+# ── Title Style ─────────────────────────────────────────────────────
+TITLE_STYLE = """
+    color: {color};
+    font-size: 24px;
+    font-weight: bold;
+    letter-spacing: 4px;
+""".format(color=GLASS_TEXT_PRIMARY)
+
+SUBTITLE_STYLE = """
+    color: {color};
+    font-size: 12px;
+    padding-top: 4px;
+""".format(color=GLASS_TEXT_SECONDARY)
+
+# ── Search Box Style ────────────────────────────────────────────────
+SEARCH_STYLE = """
+    QLineEdit {{
+        background: {bg};
+        color: {text};
+        border: 1px solid {border};
+        border-radius: 18px;
+        padding-left: 18px;
+        padding-right: 14px;
+        font-size: 13px;
+        selection-background-color: rgba(196,175,120,60);
+    }}
+    QLineEdit:hover {{
+        border-color: {hover_border};
+        background: {hover_bg};
+    }}
+    QLineEdit:focus {{
+        border-color: {focus_border};
+        background: {focus_bg};
+    }}
+""".format(
+    bg=GLASS_SEARCH_BG, text=GLASS_TEXT_PRIMARY,
+    border=GLASS_SEARCH_BORDER, hover_border=GLASS_BORDER_HOVER,
+    hover_bg="rgba(255,248,235,16)", focus_border=GLASS_SEARCH_FOCUS,
+    focus_bg="rgba(255,248,235,20)"
+)
+
+# ── Sidebar capsule style ───────────────────────────────────────────
+SIDEBAR_STYLE = """
+    QFrame {{
+        background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+            stop:0 {bg_top}, stop:1 {bg_base});
+        border-radius: 22px;
+        border: 1px solid {border};
+    }}
+""".format(
+    bg_top="rgba(58,42,28,180)", bg_base=GLASS_SIDEBAR_BG,
+    border=GLASS_SIDEBAR_BORDER
+)
+
+SIDEBAR_BTN_STYLE = """
+    QPushButton {{
+        background: transparent;
+        color: {text};
+        border: none;
+        border-radius: 18px;
+        font-size: 16px;
+    }}
+    QPushButton:hover {{
+        background: {hover};
+        color: {accent};
+    }}
+    QPushButton:checked {{
+        background: {active};
+        color: {accent};
+    }}
+""".format(text=GLASS_TEXT_SECONDARY, hover=GLASS_TOOL_HOVER,
+           active=GLASS_TOOL_ACTIVE, accent=GLASS_ACCENT)
+
+# ── Window Button Style ─────────────────────────────────────────────
+WIN_BTN_STYLE = """
+    QPushButton {{
+        background: transparent;
+        color: {text};
+        border: none;
+        border-radius: 17px;
+        font-size: 14px;
+    }}
+    QPushButton:hover {{
+        background: {hover};
+        color: {hover_text};
+    }}
+""".format(text=GLASS_TEXT_DIM, hover="rgba(196,175,120,25)",
+           hover_text=GLASS_TEXT_PRIMARY)
+
+WIN_CLOSE_STYLE = """
+    QPushButton {{
+        background: transparent;
+        color: {text};
+        border: none;
+        border-radius: 17px;
+        font-size: 13px;
+    }}
+    QPushButton:hover {{
+        background: rgba(200,80,60,160);
+        color: white;
+    }}
+""".format(text=GLASS_TEXT_DIM)
+
+# ── Separator Style ─────────────────────────────────────────────────
+SEPARATOR_STYLE = """
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 transparent,
+        stop:0.15 rgba(196,175,120,20),
+        stop:0.5 rgba(196,175,120,40),
+        stop:0.85 rgba(196,175,120,20),
+        stop:1 transparent);
+"""
 
 # ── Common Styles ──────────────────────────────────────────────────────
 MENU_STYLE = """

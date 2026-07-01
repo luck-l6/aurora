@@ -34,7 +34,14 @@ from PyQt5.QtGui import (
 from wallpaper_engine import WallpaperManager
 from constants import (
     APP_VERSION, MENU_STYLE, SPHERE_SKINS, DEFAULT_DATA,
-    DATA_FILE, CHANGELOG_FILE, COLLECT_DIR, _BASE_DIR
+    DATA_FILE, CHANGELOG_FILE, COLLECT_DIR, _BASE_DIR,
+    CONTAINER_GLASS_STYLE, CONTAINER_TRANSPARENT_STYLE,
+    TITLE_STYLE, SUBTITLE_STYLE, SEARCH_STYLE,
+    SIDEBAR_STYLE, SIDEBAR_BTN_STYLE,
+    WIN_BTN_STYLE, WIN_CLOSE_STYLE, SEPARATOR_STYLE,
+    GLASS_TEXT_PRIMARY, GLASS_TEXT_SECONDARY, GLASS_TEXT_DIM,
+    GLASS_TOOL_BG, GLASS_TOOL_HOVER, GLASS_TOOL_ACTIVE, GLASS_ACCENT,
+    GLASS_SHADOW
 )
 from icon_utils import (
     _move_to_collect, _resolve_path, _to_storage_path,
@@ -458,8 +465,8 @@ class DesktopOrganizer(QWidget):
         self.show()
         if hasattr(self, '_title_bar'):
             self._title_bar.show()
-        if hasattr(self, '_toolbar'):
-            self._toolbar.show()
+        if hasattr(self, '_sidebar'):
+            self._sidebar.show()
         if hasattr(self, '_separator'):
             self._separator.show()
         self._apply_container_style()
@@ -1340,110 +1347,67 @@ class DesktopOrganizer(QWidget):
         self._container = container
         self._apply_container_style()
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(60)
-        shadow.setColor(QColor(0, 0, 0, 200))
-        shadow.setOffset(0, 8)
+        shadow.setBlurRadius(50)
+        shadow.setColor(QColor(0, 0, 0, 120))
+        shadow.setOffset(0, 6)
         container.setGraphicsEffect(shadow)
 
         c_layout = QVBoxLayout(container)
-        c_layout.setContentsMargins(28, 14, 28, 20)
+        c_layout.setContentsMargins(28, 16, 28, 16)
         c_layout.setSpacing(6)
 
         # Title bar
         title_bar = QFrame()
-        title_bar.setFixedHeight(48)
+        title_bar.setFixedHeight(56)
         title_bar.setStyleSheet("background: transparent;")
         t_layout = QHBoxLayout(title_bar)
         t_layout.setContentsMargins(4, 0, 4, 0)
         t_layout.setSpacing(14)
 
+        # 主标题 + 副标题竖排
+        title_col = QVBoxLayout()
+        title_col.setSpacing(0)
+        title_col.setContentsMargins(0, 0, 0, 0)
         title = QLabel("桌面收纳")
-        title.setStyleSheet("""
-            color: rgba(255,255,255,235);
-            font-size: 20px;
-            font-weight: bold;
-            letter-spacing: 2px;
-        """)
-        t_layout.addWidget(title)
-
-        # Category count with refined styling
+        title.setStyleSheet(TITLE_STYLE)
+        title_col.addWidget(title)
         count = len([c for c in self.data["categories"] if not c.get("_deleted")])
-        count_lbl = QLabel(f"  ·  {count} 个分类")
-        count_lbl.setStyleSheet("""
-            color: rgba(170,178,195,140);
-            font-size: 12px;
-            padding-top: 3px;
-        """)
-        t_layout.addWidget(count_lbl)
+        total_items = sum(len(c.get("items", [])) for c in self.data["categories"] if not c.get("_deleted"))
+        count_lbl = QLabel(f"  {count} 个分类  ·  {total_items} 个应用")
+        count_lbl.setStyleSheet(SUBTITLE_STYLE)
+        title_col.addWidget(count_lbl)
+        t_layout.addLayout(title_col)
         t_layout.addStretch()
 
         self.search_box = QLineEdit()
         self.search_box.setPlaceholderText("  搜索分类或应用...")
-        self.search_box.setFixedWidth(240)
-        self.search_box.setFixedHeight(34)
-        self.search_box.setStyleSheet("""
-            QLineEdit {
-                background: rgba(255,255,255,12);
-                color: rgba(255,255,255,220);
-                border: 1px solid rgba(255,255,255,18);
-                border-radius: 17px;
-                padding-left: 16px;
-                padding-right: 12px;
-                font-size: 12px;
-                selection-background-color: rgba(196,180,140,60);
-            }
-            QLineEdit:hover {
-                border-color: rgba(255,255,255,35);
-                background: rgba(255,255,255,18);
-            }
-            QLineEdit:focus {
-                border-color: rgba(196,180,140,120);
-                background: rgba(255,255,255,22);
-            }
-        """)
+        self.search_box.setFixedWidth(220)
+        self.search_box.setFixedHeight(36)
+        self.search_box.setStyleSheet(SEARCH_STYLE)
         self.search_box.textChanged.connect(self._on_search)
         t_layout.addWidget(self.search_box)
 
         min_btn = QPushButton("—")
         min_btn.setFixedSize(34, 34)
         min_btn.setCursor(Qt.PointingHandCursor)
-        min_btn.setStyleSheet("""
-            QPushButton {
-                background: transparent;
-                color: rgba(255,255,255,100);
-                border: none;
-                border-radius: 17px;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background: rgba(255,255,255,20);
-                color: rgba(255,255,255,220);
-            }
-        """)
+        min_btn.setStyleSheet(WIN_BTN_STYLE)
         min_btn.clicked.connect(self.showMinimized)
         t_layout.addWidget(min_btn)
 
         close_btn = QPushButton("✕")
         close_btn.setFixedSize(34, 34)
         close_btn.setCursor(Qt.PointingHandCursor)
-        close_btn.setStyleSheet("""
-            QPushButton {
-                background: transparent;
-                color: rgba(255,255,255,100);
-                border: none;
-                border-radius: 17px;
-                font-size: 13px;
-            }
-            QPushButton:hover {
-                background: rgba(231,76,60,160);
-                color: white;
-            }
-        """)
+        close_btn.setStyleSheet(WIN_CLOSE_STYLE)
         close_btn.clicked.connect(self._save_and_close)
         t_layout.addWidget(close_btn)
 
         c_layout.addWidget(title_bar)
         self._title_bar = title_bar
+
+        # Content area: circle_area + right sidebar
+        content_row = QHBoxLayout()
+        content_row.setSpacing(10)
+        content_row.setContentsMargins(0, 0, 0, 0)
 
         # Circular layout area for category buttons
         self.circle_area = CircleArea(wallpaper_manager=self._wallpaper)
@@ -1456,61 +1420,74 @@ class DesktopOrganizer(QWidget):
                 CategoryCircleButton._custom_skin_data = custom
         self.circle_area.categoryClicked.connect(self._open_radial)
         self.circle_area.categoryMenuRequested.connect(self._on_category_menu)
-        c_layout.addWidget(self.circle_area, 1)
+        content_row.addWidget(self.circle_area, 1)
+
+        # Right sidebar capsule
+        sidebar = QFrame()
+        sidebar.setFixedWidth(56)
+        sidebar.setStyleSheet(SIDEBAR_STYLE)
+        sb_layout = QVBoxLayout(sidebar)
+        sb_layout.setContentsMargins(6, 12, 6, 12)
+        sb_layout.setSpacing(4)
+        sb_layout.setAlignment(Qt.AlignCenter)
+
+        # Sidebar buttons
+        sidebar_btns = [
+            ("＋", "新建分类", self._add_category, False),
+            ("🔍", "搜索", lambda: self.search_box.setFocus(), False),
+            ("≡", "规则", self._show_rules_dialog, False),
+            ("↺", "撤销", self._show_undo_dialog, False),
+            ("◐", "背景", self._customize_bg, False),
+            ("◎", "皮肤", self._pick_skin, False),
+        ]
+        self._sidebar_btns = []
+        for icon, tip, handler, checkable in sidebar_btns:
+            btn = QPushButton(icon)
+            btn.setFixedSize(44, 44)
+            btn.setToolTip(tip)
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setStyleSheet(SIDEBAR_BTN_STYLE)
+            if checkable:
+                btn.setCheckable(True)
+            btn.clicked.connect(handler)
+            sb_layout.addWidget(btn)
+            self._sidebar_btns.append(btn)
+
+        sb_layout.addStretch()
+
+        # Exit button at bottom
+        btn_power = QPushButton("⏻")
+        btn_power.setFixedSize(44, 44)
+        btn_power.setToolTip("退出")
+        btn_power.setCursor(Qt.PointingHandCursor)
+        btn_power.setStyleSheet(SIDEBAR_BTN_STYLE)
+        btn_power.clicked.connect(self._save_and_close)
+        sb_layout.addWidget(btn_power)
+
+        content_row.addWidget(sidebar)
+        self._sidebar = sidebar
+
+        c_layout.addLayout(content_row)
 
         # Separator with gradient effect
         sep = QFrame()
         sep.setFixedHeight(1)
-        sep.setStyleSheet("""
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                stop:0 transparent,
-                stop:0.2 rgba(196,180,140,25),
-                stop:0.5 rgba(196,180,140,45),
-                stop:0.8 rgba(196,180,140,25),
-                stop:1 transparent);
-        """)
+        sep.setStyleSheet(SEPARATOR_STYLE)
         c_layout.addWidget(sep)
         self._separator = sep
 
-        # Bottom toolbar with refined styling
-        toolbar = QFrame()
-        toolbar.setFixedHeight(64)
-        toolbar.setStyleSheet("background: transparent;")
-        tb_layout = QHBoxLayout(toolbar)
-        tb_layout.setContentsMargins(0, 6, 0, 0)
-        tb_layout.setSpacing(28)
-        tb_layout.setAlignment(Qt.AlignCenter)
+        # Bottom info bar (minimal)
+        bottom_bar = QFrame()
+        bottom_bar.setFixedHeight(32)
+        bottom_bar.setStyleSheet("background: transparent;")
+        bb_layout = QHBoxLayout(bottom_bar)
+        bb_layout.setContentsMargins(8, 0, 8, 0)
+        version_lbl = QLabel(f"v{APP_VERSION}")
+        version_lbl.setStyleSheet(f"color: {GLASS_TEXT_DIM}; font-size: 11px;")
+        bb_layout.addWidget(version_lbl)
+        bb_layout.addStretch()
+        c_layout.addWidget(bottom_bar)
 
-        btn_add = ToolButton("＋", "新建分类", "#5CB85C")
-        btn_add.clicked.connect(self._add_category)
-        tb_layout.addWidget(btn_add)
-
-        btn_search = ToolButton("⌕", "搜索", "#4A90D9")
-        btn_search.clicked.connect(lambda: self.search_box.setFocus())
-        tb_layout.addWidget(btn_search)
-
-        btn_rules = ToolButton("≡", "规则", "#1ABC9C")
-        btn_rules.clicked.connect(self._show_rules_dialog)
-        tb_layout.addWidget(btn_rules)
-
-        btn_trash = ToolButton("↺", "撤销", "#E8A838")
-        btn_trash.clicked.connect(self._show_undo_dialog)
-        tb_layout.addWidget(btn_trash)
-
-        btn_bg = ToolButton("◐", "背景", "#9B59B6")
-        btn_bg.clicked.connect(self._customize_bg)
-        tb_layout.addWidget(btn_bg)
-
-        btn_skin = ToolButton("◎", "球体皮肤", "#E67E22")
-        btn_skin.clicked.connect(self._pick_skin)
-        tb_layout.addWidget(btn_skin)
-
-        btn_power = ToolButton("⏻", "退出", "#E74C3C")
-        btn_power.clicked.connect(self._save_and_close)
-        tb_layout.addWidget(btn_power)
-
-        c_layout.addWidget(toolbar)
-        self._toolbar = toolbar
         root.addWidget(container)
         self._refresh_list()
 
@@ -2051,30 +2028,18 @@ class DesktopOrganizer(QWidget):
     def _apply_container_style(self):
         bg_color = self.data.get("bg_color", "")
         if bg_color == "transparent":
-            self._container.setStyleSheet("""
-                QFrame {
-                    background: transparent;
-                    border-radius: 22px;
-                    border: 1px solid rgba(255,255,255,10);
-                }
-            """)
+            self._container.setStyleSheet(CONTAINER_TRANSPARENT_STYLE)
             shadow = self._container.graphicsEffect()
             if shadow:
                 shadow.setEnabled(False)
         else:
-            self._container.setStyleSheet("""
-                QFrame {
-                    background: qlineargradient(x1:0, y1:0, x2:0.08, y2:1,
-                        stop:0 rgba(16, 18, 26, 245),
-                        stop:0.4 rgba(12, 14, 22, 248),
-                        stop:1 rgba(8, 10, 16, 252));
-                    border-radius: 22px;
-                    border: 1px solid rgba(196,180,140,28);
-                }
-            """)
+            self._container.setStyleSheet(CONTAINER_GLASS_STYLE)
             shadow = self._container.graphicsEffect()
             if shadow:
                 shadow.setEnabled(True)
+                shadow.setColor(QColor(0, 0, 0, 120))
+                shadow.setBlurRadius(50)
+                shadow.setOffset(0, 6)
 
     def _set_transparent_bg(self):
         self.data["bg_color"] = "transparent"
@@ -2224,8 +2189,8 @@ class DesktopOrganizer(QWidget):
         self._ui_visible = visible
         if hasattr(self, '_title_bar'):
             self._title_bar.setVisible(visible)
-        if hasattr(self, '_toolbar'):
-            self._toolbar.setVisible(visible)
+        if hasattr(self, '_sidebar'):
+            self._sidebar.setVisible(visible)
         if hasattr(self, '_separator'):
             self._separator.setVisible(visible)
 

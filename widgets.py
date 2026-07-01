@@ -1484,7 +1484,6 @@ class CircleArea(QWidget):
                 if wp_type in ("image", "video"):
                     painter.fillRect(0, 0, w, h, QColor(0, 0, 0, 100))
             elif self._bg_pixmap and not self._bg_pixmap.isNull():
-                # Cache the scaled pixmap (only re-scale when size changes)
                 if self._cached_bg_size != (w, h):
                     self._cached_bg_pixmap = self._bg_pixmap.scaled(
                         w, h, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
@@ -1497,8 +1496,19 @@ class CircleArea(QWidget):
                 painter.fillRect(0, 0, w, h, QColor(0, 0, 0, 100))
             elif bg_color and bg_color != "transparent":
                 painter.fillRect(0, 0, w, h, QColor(bg_color))
+            else:
+                # 默认暖色氛围背景
+                if self._cached_bg_size != (w, h):
+                    amb = QRadialGradient(cx * 0.8, cy * 0.7, max(w, h) * 0.7, cx, cy)
+                    amb.setColorAt(0, QColor(70, 50, 28, 60))
+                    amb.setColorAt(0.3, QColor(50, 36, 20, 40))
+                    amb.setColorAt(0.7, QColor(30, 22, 14, 20))
+                    amb.setColorAt(1.0, QColor(0, 0, 0, 0))
+                    self._cached_ambient = QBrush(amb)
+                    self._cached_bg_size = (w, h)
+                painter.fillRect(0, 0, w, h, self._cached_ambient)
 
-            # Cache vignette gradient (only recreate when size changes)
+            # Vignette
             if self._cached_vignette_size != (w, h):
                 vignette = QRadialGradient(cx, cy, max(w, h) * 0.55, cx, cy)
                 vignette.setColorAt(0.5, QColor(0, 0, 0, 0))
@@ -1508,59 +1518,83 @@ class CircleArea(QWidget):
                 self._cached_vignette_size = (w, h)
             painter.fillRect(0, 0, w, h, self._cached_vignette)
 
-            # ── 多层装饰背景 ──
+            # ── 多层暖金装饰背景 ──
             r = min(cx, cy) - 30
 
-            # 层1: 径向网格线（8条）
+            # 层0: 大范围暖色光晕（底层氛围）
+            painter.setPen(Qt.NoPen)
+            ambient = QRadialGradient(cx, cy, r * 1.2, cx, cy)
+            ambient.setColorAt(0, QColor(196, 175, 120, 18))
+            ambient.setColorAt(0.4, QColor(196, 175, 120, 8))
+            ambient.setColorAt(0.8, QColor(196, 175, 120, 2))
+            ambient.setColorAt(1.0, QColor(0, 0, 0, 0))
+            painter.setBrush(ambient)
+            painter.drawEllipse(int(cx - r * 1.2), int(cy - r * 1.2),
+                               int(r * 2.4), int(r * 2.4))
+
+            # 层1: 径向网格线（12条，更密）
             painter.save()
-            for i in range(8):
-                angle = i * math.pi / 4
-                x1 = cx + int(r * 0.15 * math.cos(angle))
-                y1 = cy + int(r * 0.15 * math.sin(angle))
+            for i in range(12):
+                angle = i * math.pi / 6
+                x1 = cx + int(r * 0.12 * math.cos(angle))
+                y1 = cy + int(r * 0.12 * math.sin(angle))
                 x2 = cx + int(r * math.cos(angle))
                 y2 = cy + int(r * math.sin(angle))
-                painter.setPen(QPen(QColor(196, 180, 140, 25), 0.8))
+                alpha = int(18 + 8 * math.sin(self._phase * 0.5 + i))
+                painter.setPen(QPen(QColor(196, 175, 120, alpha), 0.6))
                 painter.drawLine(x1, y1, x2, y2)
             painter.restore()
 
-            # 层2: 多层同心环（外→内，渐变透明度）
+            # 层2: 多层同心环（外→内，暖金脉动）
             rings = [
-                (r, 1.2, 35),       # 最外环
-                (r - 15, 1.0, 50),  # 第二环
-                (r - 35, 0.8, 30),  # 第三环
-                (r * 0.5, 0.6, 20), # 内环
+                (r, 1.2, 30, 1.0),
+                (r * 0.85, 1.0, 45, 1.2),
+                (r * 0.65, 0.8, 35, 1.0),
+                (r * 0.45, 0.6, 25, 0.8),
+                (r * 0.25, 0.4, 18, 0.6),
             ]
-            for ring_r, pulse_speed, base_alpha in rings:
-                glow = int(base_alpha + 15 * math.sin(self._phase * pulse_speed))
-                painter.setPen(QPen(QColor(196, 180, 140, glow), 1.2))
+            for ring_r, pulse_speed, base_alpha, line_w in rings:
+                glow = int(base_alpha + 12 * math.sin(self._phase * pulse_speed))
+                painter.setPen(QPen(QColor(196, 175, 120, glow), line_w))
                 painter.setBrush(Qt.NoBrush)
                 painter.drawEllipse(int(cx - ring_r), int(cy - ring_r),
                                    int(ring_r * 2), int(ring_r * 2))
 
-            # 层3: 中心光晕
-            center_glow = QRadialGradient(cx, cy, r * 0.4, cx, cy)
-            pulse_intensity = 0.12 + 0.06 * math.sin(self._phase * 0.8)
-            center_glow.setColorAt(0, QColor(196, 180, 140, int(255 * pulse_intensity)))
-            center_glow.setColorAt(0.5, QColor(196, 180, 140, int(255 * pulse_intensity * 0.3)))
+            # 层3: 中心暖金光晕（更强）
+            center_glow = QRadialGradient(cx, cy, r * 0.45, cx, cy)
+            pulse_intensity = 0.15 + 0.08 * math.sin(self._phase * 0.8)
+            center_glow.setColorAt(0, QColor(220, 195, 140, int(255 * pulse_intensity)))
+            center_glow.setColorAt(0.3, QColor(196, 175, 120, int(255 * pulse_intensity * 0.5)))
+            center_glow.setColorAt(0.7, QColor(196, 175, 120, int(255 * pulse_intensity * 0.1)))
             center_glow.setColorAt(1, QColor(0, 0, 0, 0))
             painter.setPen(Qt.NoPen)
             painter.setBrush(center_glow)
-            painter.drawEllipse(int(cx - r * 0.4), int(cy - r * 0.4),
-                               int(r * 0.8), int(r * 0.8))
+            painter.drawEllipse(int(cx - r * 0.45), int(cy - r * 0.45),
+                               int(r * 0.9), int(r * 0.9))
 
-            # 层4: 装饰性小圆点（沿环分布）
+            # 层4: 装饰性小圆点（两圈，内外）
             painter.setPen(Qt.NoPen)
-            for i in range(12):
-                dot_angle = self._phase * 0.3 + i * math.pi / 6
-                dot_r = r - 8
+            # 外圈
+            for i in range(16):
+                dot_angle = self._phase * 0.25 + i * math.pi / 8
+                dot_r = r - 5
                 dx = cx + int(dot_r * math.cos(dot_angle))
                 dy = cy + int(dot_r * math.sin(dot_angle))
-                dot_alpha = int(60 + 40 * math.sin(self._phase + i))
-                painter.setBrush(QColor(196, 180, 140, dot_alpha))
+                dot_alpha = int(50 + 30 * math.sin(self._phase + i * 0.7))
+                painter.setBrush(QColor(196, 175, 120, dot_alpha))
                 painter.drawEllipse(dx - 2, dy - 2, 4, 4)
+            # 内圈
+            for i in range(8):
+                dot_angle = -self._phase * 0.4 + i * math.pi / 4
+                dot_r = r * 0.35
+                dx = cx + int(dot_r * math.cos(dot_angle))
+                dy = cy + int(dot_r * math.sin(dot_angle))
+                dot_alpha = int(35 + 20 * math.sin(self._phase * 1.2 + i))
+                painter.setBrush(QColor(220, 200, 150, dot_alpha))
+                painter.drawEllipse(dx - 1, dy - 1, 3, 3)
 
-            # 层5: 中心文字
-            painter.setPen(QColor(196, 180, 140, 80))
+            # 层5: 中心文字（暖金色）
+            painter.setPen(QColor(196, 175, 120, 70))
             painter.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
             painter.drawText(QRectF(cx - 70, cy - 20, 140, 40), Qt.AlignCenter, "桌面收纳")
 
@@ -1574,12 +1608,39 @@ class CircleArea(QWidget):
                 painter.drawPixmap(int(sx - half), int(sy - half), sz, sz, pixmap)
         painter.setOpacity(1.0)
 
+        # Category name labels under each sphere
+        painter.setPen(QColor(255, 248, 235, 180))
+        painter.setFont(QFont("Microsoft YaHei", 9, QFont.Bold))
+        for btn, sx, sy, sz, opacity, _ in self._projected:
+            if opacity < 0.3:
+                continue
+            cat = btn.category_data
+            name = cat.get("name", "")
+            count = len(cat.get("items", []))
+            label = f"{name}"
+            fm = painter.fontMetrics()
+            tw = fm.horizontalAdvance(label)
+            lx = int(sx - tw / 2)
+            ly = int(sy + sz // 2 + 10)
+            painter.setOpacity(opacity * 0.85)
+            painter.drawText(lx, ly, tw, fm.height(), Qt.AlignCenter, label)
+            # Count below name
+            if count > 0:
+                painter.setPen(QColor(196, 175, 120, int(120 * opacity)))
+                painter.setFont(QFont("Microsoft YaHei", 7))
+                count_text = f"{count} 个应用"
+                ctw = fm.horizontalAdvance(count_text)
+                painter.drawText(int(sx - ctw / 2), ly + fm.height() + 2, ctw, fm.height(),
+                                 Qt.AlignCenter, count_text)
+                painter.setPen(QColor(255, 248, 235, 180))
+                painter.setFont(QFont("Microsoft YaHei", 9, QFont.Bold))
+        painter.setOpacity(1.0)
+
         # Hover tooltip — category name + item count
         if self._hovered_btn:
             cat = self._hovered_btn.category_data
             name = cat.get("name", "")
             count = len(cat.get("items", []))
-            # Find this button's projected position
             for btn, sx, sy, sz, _, _ in self._projected:
                 if btn is self._hovered_btn:
                     text = f"{name} ({count}项)" if count else name
@@ -1589,14 +1650,17 @@ class CircleArea(QWidget):
                     tw = fm.horizontalAdvance(text) + 16
                     th = fm.height() + 8
                     tx = int(sx - tw / 2)
-                    ty = int(sy + sz / 2 + 8)
-                    # Background pill
-                    painter.setOpacity(0.85)
+                    ty = int(sy + sz / 2 + 28)
+                    # Warm glass pill background
+                    painter.setOpacity(0.9)
                     painter.setPen(Qt.NoPen)
-                    painter.setBrush(QColor(20, 22, 32, 220))
-                    painter.drawRoundedRect(tx, ty, tw, th, 6, 6)
+                    painter.setBrush(QColor(42, 31, 20, 220))
+                    painter.drawRoundedRect(tx - 2, ty - 2, tw + 4, th + 4, 8, 8)
+                    painter.setPen(QPen(QColor(196, 175, 120, 60), 1))
+                    painter.setBrush(Qt.NoBrush)
+                    painter.drawRoundedRect(tx - 2, ty - 2, tw + 4, th + 4, 8, 8)
                     painter.setOpacity(1.0)
-                    painter.setPen(QColor(230, 220, 190))
+                    painter.setPen(QColor(255, 248, 235))
                     painter.drawText(tx, ty, tw, th, Qt.AlignCenter, text)
                     break
 
