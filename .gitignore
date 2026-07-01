@@ -7,6 +7,8 @@ signal_log.txt
 exception_log.txt
 save_error.txt
 wp_error.txt
+run.log
+wp_debug.log
 test_*.py
 debug_launch.py
 backups/
