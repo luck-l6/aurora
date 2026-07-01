@@ -1452,6 +1452,12 @@ class CircleArea(QWidget):
         self._mouse_active = False
         self._set_hover(None)
 
+    def resizeEvent(self, e):
+        """窗口大小变化时重算球环位置"""
+        super().resizeEvent(e)
+        if hasattr(self, '_btn_entries') and self._btn_entries:
+            self._update_positions(self._btn_entries)
+
     def mouseReleaseEvent(self, e):
         if self._dragging:
             self._dragging = False
