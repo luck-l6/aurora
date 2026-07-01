@@ -1263,25 +1263,14 @@ class CircleArea(QWidget):
     def _render_tick(self):
         active = self._flying_in or self._mouse_active or self._move_mode or self._dragging
         
-        # Dynamic frame rate: 30fps when active, 30fps when idle
+        # Dynamic frame rate: always 30fps
         if active and self._is_idle:
             self._is_idle = False
             self._render_timer.setInterval(33)
             self._dirty = True
         elif not active and not self._is_idle:
             self._is_idle = True
-            self._render_timer.setInterval(33)  # 30fps idle
-        
-        # Skip some idle frames for performance
-        if not active:
-            if not hasattr(self, '_idle_counter'):
-                self._idle_counter = 0
-            self._idle_counter += 1
-            if self._idle_counter % 2 != 0:
-                return
-        else:
-            if hasattr(self, '_idle_counter'):
-                self._idle_counter = 0
+            self._render_timer.setInterval(33)
         
         self._phase += 0.04
         self._dirty = True
