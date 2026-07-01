@@ -1436,8 +1436,8 @@ class DesktopOrganizer(QWidget):
             }
         """)
         sb_layout = QVBoxLayout(sidebar)
-        sb_layout.setContentsMargins(9, 18, 9, 18)
-        sb_layout.setSpacing(8)
+        sb_layout.setContentsMargins(9, 20, 9, 20)
+        sb_layout.setSpacing(10)
         sb_layout.setAlignment(Qt.AlignCenter)
 
         # 圆形按钮样式
@@ -1462,24 +1462,39 @@ class DesktopOrganizer(QWidget):
             }
         """
 
-        # 5个功能图标按钮
+        # 带标签的按钮组
+        def make_sidebar_btn(icon, label, handler):
+            btn_widget = QFrame()
+            btn_widget.setStyleSheet("background: transparent;")
+            btn_col = QVBoxLayout(btn_widget)
+            btn_col.setSpacing(3)
+            btn_col.setContentsMargins(0, 0, 0, 0)
+            btn_col.setAlignment(Qt.AlignCenter)
+            btn = QPushButton(icon)
+            btn.setFixedSize(44, 44)
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setStyleSheet(circle_btn_style)
+            btn.clicked.connect(handler)
+            btn_col.addWidget(btn, alignment=Qt.AlignCenter)
+            lbl = QLabel(label)
+            lbl.setStyleSheet("color: rgba(196,175,120,120); font-size: 9px; background: transparent;")
+            lbl.setAlignment(Qt.AlignCenter)
+            btn_col.addWidget(lbl)
+            return btn_widget
+
+        # 5个功能按钮 + 标签
         sidebar_btns = [
-            ("O", "球体皮肤", self._pick_skin),
+            ("O", "皮肤", self._pick_skin),
             ("#", "背景", self._customize_bg),
             ("=", "规则", self._show_rules_dialog),
             ("U", "撤销", self._show_undo_dialog),
             ("Q", "搜索", lambda: self.search_box.setFocus()),
         ]
         self._sidebar_btns = []
-        for icon, tip, handler in sidebar_btns:
-            btn = QPushButton(icon)
-            btn.setFixedSize(44, 44)
-            btn.setToolTip(tip)
-            btn.setCursor(Qt.PointingHandCursor)
-            btn.setStyleSheet(circle_btn_style)
-            btn.clicked.connect(handler)
-            sb_layout.addWidget(btn)
-            self._sidebar_btns.append(btn)
+        for icon, label, handler in sidebar_btns:
+            widget = make_sidebar_btn(icon, label, handler)
+            sb_layout.addWidget(widget)
+            self._sidebar_btns.append(widget)
 
         # 分隔线
         sep_line = QFrame()
@@ -1487,17 +1502,22 @@ class DesktopOrganizer(QWidget):
         sep_line.setStyleSheet("background: rgba(196,175,120,25); border: none;")
         sb_layout.addWidget(sep_line, alignment=Qt.AlignCenter)
 
-        # 新建分类按钮（突出显示）
+        # 新建分类按钮 + 标签
+        add_widget = QFrame()
+        add_widget.setStyleSheet("background: transparent;")
+        add_col = QVBoxLayout(add_widget)
+        add_col.setSpacing(3)
+        add_col.setContentsMargins(0, 0, 0, 0)
+        add_col.setAlignment(Qt.AlignCenter)
         btn_add = QPushButton("+")
         btn_add.setFixedSize(44, 44)
-        btn_add.setToolTip("新建分类")
         btn_add.setCursor(Qt.PointingHandCursor)
         btn_add.setStyleSheet("""
             QPushButton {
                 background: rgba(196,175,120,20);
                 color: rgba(196,175,120,200);
                 border: 1px solid rgba(196,175,120,40);
-                border-radius: 20px;
+                border-radius: 22px;
                 font-size: 18px;
                 font-weight: bold;
             }
@@ -1508,21 +1528,31 @@ class DesktopOrganizer(QWidget):
             }
         """)
         btn_add.clicked.connect(self._add_category)
-        sb_layout.addWidget(btn_add)
+        add_col.addWidget(btn_add, alignment=Qt.AlignCenter)
+        add_lbl = QLabel("新建")
+        add_lbl.setStyleSheet("color: rgba(196,175,120,120); font-size: 9px; background: transparent;")
+        add_lbl.setAlignment(Qt.AlignCenter)
+        add_col.addWidget(add_lbl)
+        sb_layout.addWidget(add_widget)
 
         sb_layout.addStretch()
 
-        # 底部箭头按钮（参考图风格）
+        # 底部箭头按钮 + 标签
+        exit_widget = QFrame()
+        exit_widget.setStyleSheet("background: transparent;")
+        exit_col = QVBoxLayout(exit_widget)
+        exit_col.setSpacing(3)
+        exit_col.setContentsMargins(0, 0, 0, 0)
+        exit_col.setAlignment(Qt.AlignCenter)
         btn_exit = QPushButton(">")
         btn_exit.setFixedSize(44, 44)
-        btn_exit.setToolTip("退出")
         btn_exit.setCursor(Qt.PointingHandCursor)
         btn_exit.setStyleSheet("""
             QPushButton {
                 background: rgba(196,175,120,15);
                 color: rgba(196,175,120,150);
                 border: 1px solid rgba(196,175,120,25);
-                border-radius: 20px;
+                border-radius: 22px;
                 font-size: 16px;
             }
             QPushButton:hover {
@@ -1532,7 +1562,12 @@ class DesktopOrganizer(QWidget):
             }
         """)
         btn_exit.clicked.connect(self._save_and_close)
-        sb_layout.addWidget(btn_exit)
+        exit_col.addWidget(btn_exit, alignment=Qt.AlignCenter)
+        exit_lbl = QLabel("退出")
+        exit_lbl.setStyleSheet("color: rgba(196,175,120,120); font-size: 9px; background: transparent;")
+        exit_lbl.setAlignment(Qt.AlignCenter)
+        exit_col.addWidget(exit_lbl)
+        sb_layout.addWidget(exit_widget)
 
         content_row.addWidget(sidebar)
         self._sidebar = sidebar
