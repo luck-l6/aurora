@@ -1497,16 +1497,89 @@ class CircleArea(QWidget):
             elif bg_color and bg_color != "transparent":
                 painter.fillRect(0, 0, w, h, QColor(bg_color))
             else:
-                # 默认暖色氛围背景
-                if self._cached_bg_size != (w, h):
-                    amb = QRadialGradient(cx * 0.8, cy * 0.7, max(w, h) * 0.7, cx, cy)
-                    amb.setColorAt(0, QColor(60, 42, 24, 50))
-                    amb.setColorAt(0.4, QColor(40, 28, 16, 30))
-                    amb.setColorAt(0.8, QColor(25, 18, 10, 15))
-                    amb.setColorAt(1.0, QColor(0, 0, 0, 0))
-                    self._cached_ambient = QBrush(amb)
-                    self._cached_bg_size = (w, h)
-                painter.fillRect(0, 0, w, h, self._cached_ambient)
+                # 银河星空背景
+                # 深空底色
+                painter.fillRect(0, 0, w, h, QColor(5, 5, 18))
+
+                # 星云层1：紫色星云（左上）
+                if not hasattr(self, '_cached_nebula1') or self._cached_nebula1_size != (w, h):
+                    n1 = QRadialGradient(w * 0.2, h * 0.25, min(w, h) * 0.35, w * 0.2, h * 0.25)
+                    n1.setColorAt(0, QColor(80, 30, 120, 45))
+                    n1.setColorAt(0.3, QColor(60, 20, 100, 30))
+                    n1.setColorAt(0.7, QColor(30, 10, 60, 15))
+                    n1.setColorAt(1, QColor(0, 0, 0, 0))
+                    self._cached_nebula1 = QBrush(n1)
+                    self._cached_nebula1_size = (w, h)
+                painter.fillRect(0, 0, w, h, self._cached_nebula1)
+
+                # 星云层2：蓝色星云（右下）
+                if not hasattr(self, '_cached_nebula2') or self._cached_nebula2_size != (w, h):
+                    n2 = QRadialGradient(w * 0.75, h * 0.7, min(w, h) * 0.4, w * 0.75, h * 0.7)
+                    n2.setColorAt(0, QColor(20, 50, 120, 40))
+                    n2.setColorAt(0.3, QColor(15, 35, 90, 25))
+                    n2.setColorAt(0.7, QColor(8, 18, 50, 10))
+                    n2.setColorAt(1, QColor(0, 0, 0, 0))
+                    self._cached_nebula2 = QBrush(n2)
+                    self._cached_nebula2_size = (w, h)
+                painter.fillRect(0, 0, w, h, self._cached_nebula2)
+
+                # 星云层3：粉色星云（中心偏右）
+                if not hasattr(self, '_cached_nebula3') or self._cached_nebula3_size != (w, h):
+                    n3 = QRadialGradient(w * 0.55, h * 0.45, min(w, h) * 0.25, w * 0.55, h * 0.45)
+                    n3.setColorAt(0, QColor(100, 25, 60, 30))
+                    n3.setColorAt(0.5, QColor(60, 15, 40, 15))
+                    n3.setColorAt(1, QColor(0, 0, 0, 0))
+                    self._cached_nebula3 = QBrush(n3)
+                    self._cached_nebula3_size = (w, h)
+                painter.fillRect(0, 0, w, h, self._cached_nebula3)
+
+                # 银河带（对角线亮带）
+                if not hasattr(self, '_cached_milkyway') or self._cached_milkyway_size != (w, h):
+                    from PyQt5.QtGui import QPolygonF
+                    from PyQt5.QtCore import QPointF
+                    # 创建一条从左下到右上的半透明亮带
+                    mw = QLinearGradient(w * 0.1, h * 0.9, w * 0.9, h * 0.1)
+                    mw.setColorAt(0, QColor(0, 0, 0, 0))
+                    mw.setColorAt(0.2, QColor(100, 80, 60, 12))
+                    mw.setColorAt(0.4, QColor(140, 120, 100, 18))
+                    mw.setColorAt(0.5, QColor(160, 140, 120, 22))
+                    mw.setColorAt(0.6, QColor(140, 120, 100, 18))
+                    mw.setColorAt(0.8, QColor(100, 80, 60, 12))
+                    mw.setColorAt(1, QColor(0, 0, 0, 0))
+                    self._cached_milkyway = QBrush(mw)
+                    self._cached_milkyway_size = (w, h)
+                painter.fillRect(0, 0, w, h, self._cached_milkyway)
+
+                # 静态星星（缓存）
+                if not hasattr(self, '_cached_stars') or self._cached_stars_size != (w, h):
+                    import random
+                    random.seed(42)  # 固定种子，每次相同
+                    star_pixmap = QPixmap(w, h)
+                    star_pixmap.fill(Qt.transparent)
+                    sp = QPainter(star_pixmap)
+                    sp.setRenderHint(QPainter.Antialiasing)
+                    for _ in range(200):
+                        sx = random.randint(0, w)
+                        sy = random.randint(0, h)
+                        brightness = random.randint(80, 255)
+                        size = random.choice([1, 1, 1, 1, 2, 2, 3])
+                        alpha = int(brightness * 0.7)
+                        sp.setPen(Qt.NoPen)
+                        sp.setBrush(QColor(255, 255, 255, alpha))
+                        sp.drawEllipse(sx, sy, size, size)
+                    sp.end()
+                    self._cached_stars = star_pixmap
+                    self._cached_stars_size = (w, h)
+                painter.drawPixmap(0, 0, self._cached_stars)
+
+                # 动态闪烁星星
+                painter.setPen(Qt.NoPen)
+                for i in range(30):
+                    fx = int((hash(f"star_x_{i}") % 10000) / 10000 * w)
+                    fy = int((hash(f"star_y_{i}") % 10000) / 10000 * h)
+                    flicker = int(60 + 80 * abs(math.sin(self._phase * 0.8 + i * 1.3)))
+                    painter.setBrush(QColor(255, 255, 255, flicker))
+                    painter.drawEllipse(fx - 1, fy - 1, 3, 3)
 
             # Vignette
             if self._cached_vignette_size != (w, h):
