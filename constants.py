@@ -14,7 +14,7 @@ CHANGELOG_FILE = _BASE_DIR / "organizer_changelog.json"
 COLLECT_DIR = _BASE_DIR / "collected"
 COLLECT_DIR.mkdir(exist_ok=True)
 
-APP_VERSION = "1.3.0"
+APP_VERSION = "1.6.0"
 
 # ── Glass UI Color Palette ───────────────────────────────────────────
 # 白银色调方案 — 干净现代
