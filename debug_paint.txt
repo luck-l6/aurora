@@ -1,0 +1,5 @@
+wp_type=animated_gradient
+bg_color=None
+bg_pixmap=None
+wp_mgr=<wallpaper_engine.WallpaperManager object at 0x000001E0E30A2A80>
+wp_mode=False
