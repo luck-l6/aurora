@@ -516,6 +516,10 @@ class WallpaperManager(QObject):
     def cleanup(self):
         """清理资源"""
         self._stop_video()
+        try:
+            self._player.deleteLater()
+        except Exception:
+            pass
 
 
 # ============================================================

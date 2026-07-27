@@ -83,7 +83,7 @@ test("constants: DEFAULT_DATA 结构完整", test_default_data_structure)
 
 def test_sphere_skins_complete():
     from constants import SPHERE_SKINS
-    assert len(SPHERE_SKINS) >= 8, f"Expected >=8 skins, got {len(SPHERE_SKINS)}"
+    assert len(SPHERE_SKINS) >= 12, f"Expected >=12 skins, got {len(SPHERE_SKINS)}"
     for key, skin in SPHERE_SKINS.items():
         assert "name" in skin, f"Skin '{key}' missing 'name'"
         assert "style" in skin, f"Skin '{key}' missing 'style'"

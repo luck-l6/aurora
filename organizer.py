@@ -436,7 +436,7 @@ class DesktopOrganizer(QWidget):
             # 检查最大化/全屏暂停条件
             self._check_should_pause()
         except Exception:
-            pass
+            self._log(f"WARN _check_foreground exception")
 
     def _exit_wallpaper_mode(self):
         """退出壁纸模式：恢复窗口"""
@@ -540,7 +540,7 @@ class DesktopOrganizer(QWidget):
                 self._set_click_through(True)
                 self._click_through = True
         except Exception:
-            pass
+            self._log(f"WARN _check_hover_for_clickthrough exception")
 
     def _toggle_wallpaper_mode(self):
         if self._wallpaper_mode:
