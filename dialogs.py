@@ -17,7 +17,8 @@ from PyQt5.QtGui import (
     QPixmap, QImage, QImageReader, QRadialGradient, QLinearGradient, QIcon
 )
 
-from constants import APP_VERSION, SPHERE_SKINS, MENU_STYLE, _BASE_DIR, CHANGELOG_FILE
+from constants import APP_VERSION, SPHERE_SKINS, MENU_STYLE, _BASE_DIR, CHANGELOG_FILE, LIQUID_GLASS_DIALOG_STYLE
+from widgets import SkinPreview
 
 
 class CustomSkinDialog(QDialog):
@@ -27,93 +28,7 @@ class CustomSkinDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("自定义皮肤")
         self.setFixedSize(480, 620)
-        self.setStyleSheet("""
-            QDialog {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(22,24,34,255), stop:1 rgba(14,16,22,255));
-                color: white;
-                border: 1px solid rgba(196,180,140,40);
-                border-radius: 14px;
-            }
-            QLabel { color: rgba(210,210,220,210); font-size: 13px; }
-            QSlider::groove:horizontal {
-                height: 6px;
-                background: rgba(255,255,255,12);
-                border-radius: 3px;
-            }
-            QSlider::handle:horizontal {
-                width: 18px; height: 18px; margin: -6px 0;
-                background: qradialgradient(cx:0.35, cy:0.35, radius:0.6,
-                    stop:0 rgba(220,210,180,255), stop:1 rgba(180,168,130,255));
-                border-radius: 9px;
-                border: 1px solid rgba(196,180,140,60);
-            }
-            QSlider::handle:horizontal:hover {
-                background: qradialgradient(cx:0.35, cy:0.35, radius:0.6,
-                    stop:0 rgba(240,230,200,255), stop:1 rgba(200,188,150,255));
-            }
-            QComboBox {
-                background: rgba(255,255,255,8);
-                color: rgba(255,255,255,220);
-                border: 1px solid rgba(196,180,140,40);
-                border-radius: 8px;
-                padding: 6px 12px;
-            }
-            QComboBox:hover { border-color: rgba(196,180,140,80); }
-            QComboBox::drop-down { border: none; }
-            QComboBox QAbstractItemView {
-                background: rgba(18,20,28,245);
-                color: rgba(255,255,255,220);
-                border: 1px solid rgba(196,180,140,40);
-                border-radius: 8px;
-                selection-background-color: rgba(196,180,140,30);
-                padding: 4px;
-            }
-            QLineEdit {
-                background: rgba(255,255,255,8);
-                color: rgba(255,255,255,220);
-                border: 1px solid rgba(196,180,140,40);
-                border-radius: 8px;
-                padding: 6px 12px;
-            }
-            QLineEdit:focus { border-color: rgba(196,180,140,100); }
-            QScrollArea {
-                border: 1px solid rgba(196,180,140,20);
-                border-radius: 8px;
-                background: transparent;
-            }
-            QScrollArea > QWidget > QWidget { background: transparent; }
-            QScrollBar:vertical {
-                width: 6px;
-                background: transparent;
-                border-radius: 3px;
-            }
-            QScrollBar::handle:vertical {
-                background: rgba(196,180,140,60);
-                border-radius: 3px;
-                min-height: 30px;
-            }
-            QScrollBar::handle:vertical:hover { background: rgba(196,180,140,90); }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
-            QDialogButtonBox QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(196,180,140,40), stop:1 rgba(196,180,140,20));
-                color: rgba(196,180,140,240);
-                border: 1px solid rgba(196,180,140,60);
-                border-radius: 10px;
-                padding: 8px 30px;
-                font-size: 13px;
-                font-weight: bold;
-            }
-            QDialogButtonBox QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(196,180,140,60), stop:1 rgba(196,180,140,35));
-                border-color: rgba(196,180,140,100);
-            }
-            QDialogButtonBox QPushButton:pressed {
-                background: rgba(196,180,140,70);
-            }
-        """)
+        self.setStyleSheet(LIQUID_GLASS_DIALOG_STYLE)
 
         defaults = existing if existing else {
             "name": "自定义",
@@ -257,30 +172,179 @@ class CustomSkinDialog(QDialog):
         }
 
 
+class _RuleCard(QFrame):
+    """A single rule card widget with left color indicator and description."""
+    clicked = pyqtSignal(int)
+
+    CARD_STYLE = """
+        QFrame {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+        }
+        QFrame:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+    """
+    CARD_SELECTED_STYLE = """
+        QFrame {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+        }
+    """
+
+    def __init__(self, index, exe_name, behavior, description="", parent=None):
+        super().__init__(parent)
+        self._index = index
+        self._selected = False
+        self._behavior = behavior
+        self.setFixedHeight(70)
+        self.setCursor(QCursor(Qt.PointingHandCursor))
+        self.setStyleSheet(self.CARD_STYLE)
+
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(8, 10, 16, 10)
+        lay.setSpacing(14)
+
+        # Left color indicator bar
+        self._bar = QFrame()
+        self._bar.setFixedSize(3, 36)
+        bar_color = "rgba(255,166,77,0.6)" if behavior == "pause" else "rgba(102,187,106,0.6)"
+        self._bar.setStyleSheet(f"background: {bar_color}; border-radius: 1px;")
+        lay.addWidget(self._bar)
+
+        # Icon
+        self._icon_label = QLabel("⏸" if behavior == "pause" else "▶")
+        self._icon_label.setFixedSize(40, 40)
+        self._icon_label.setAlignment(Qt.AlignCenter)
+        if behavior == "pause":
+            self._icon_label.setStyleSheet(
+                "background: rgba(255,166,77,0.08);"
+                "border: 1px solid rgba(255,166,77,0.15);"
+                "border-radius: 10px; font-size: 18px;"
+            )
+        else:
+            self._icon_label.setStyleSheet(
+                "background: rgba(102,187,106,0.08);"
+                "border: 1px solid rgba(102,187,106,0.15);"
+                "border-radius: 10px; font-size: 18px;"
+            )
+        lay.addWidget(self._icon_label)
+
+        # Info
+        info_lay = QVBoxLayout()
+        info_lay.setSpacing(3)
+        info_lay.setContentsMargins(0, 0, 0, 0)
+
+        self._name_label = QLabel(exe_name)
+        self._name_label.setStyleSheet(
+            "color: rgba(255,255,255,0.85); font-size: 16px; font-weight: 500;"
+            "font-family: 'Consolas', 'SF Mono', monospace;"
+        )
+        info_lay.addWidget(self._name_label)
+
+        beh_text = "暂停" if behavior == "pause" else "保持运行"
+        self._desc_label = QLabel(description if description else beh_text)
+        self._desc_label.setStyleSheet("color: rgba(255,255,255,0.35); font-size: 13px;")
+        info_lay.addWidget(self._desc_label)
+
+        lay.addLayout(info_lay, 1)
+
+        # Behavior tag
+        self._tag = QLabel(beh_text)
+        if behavior == "pause":
+            self._tag.setStyleSheet(
+                "background: rgba(255,166,77,0.08);"
+                "border: 1px solid rgba(255,166,77,0.15);"
+                "color: rgba(255,166,77,0.9);"
+                "border-radius: 8px; padding: 5px 14px; font-size: 13px; font-weight: 500;"
+            )
+        else:
+            self._tag.setStyleSheet(
+                "background: rgba(102,187,106,0.08);"
+                "border: 1px solid rgba(102,187,106,0.15);"
+                "color: rgba(102,187,106,0.9);"
+                "border-radius: 8px; padding: 5px 14px; font-size: 13px; font-weight: 500;"
+            )
+        self._tag.setFixedHeight(28)
+        lay.addWidget(self._tag)
+
+    def set_selected(self, selected):
+        self._selected = selected
+        self.setStyleSheet(self.CARD_SELECTED_STYLE if selected else self.CARD_STYLE)
+        bar_color = ("rgba(255,166,77,0.8)" if self._behavior == "pause"
+                     else "rgba(102,187,106,0.8)")
+        if not selected:
+            bar_color = bar_color.replace("0.8", "0.6")
+        self._bar.setStyleSheet(f"background: {bar_color}; border-radius: 1px;")
+
+    def mousePressEvent(self, event):
+        self.clicked.emit(self._index)
+        super().mousePressEvent(event)
+
+
 class AppRulesDialog(QDialog):
     """Dialog to configure per-application pause/run rules."""
-    STYLE = """
-        QDialog { background: rgba(22,24,34,255); color: white;
-                  border: 1px solid rgba(196,180,140,40); border-radius: 12px; }
-        QLabel  { color: rgba(255,255,255,200); }
-        QPushButton { background: rgba(196,180,140,40); color: white;
-                      border: 1px solid rgba(196,180,140,60); border-radius: 6px;
-                      padding: 6px 14px; }
-        QPushButton:hover { background: rgba(196,180,140,70); }
-        QListWidget { background: rgba(30,32,44,200); color: white;
-                      border: 1px solid rgba(196,180,140,30); border-radius: 6px; }
-        QListWidget::item:selected { background: rgba(196,180,140,50); }
-        QComboBox { background: rgba(40,42,54,200); color: white;
-                    border: 1px solid rgba(196,180,140,40); border-radius: 6px; padding: 4px 8px; }
-        QLineEdit { background: rgba(40,42,54,200); color: white;
-                    border: 1px solid rgba(196,180,140,40); border-radius: 6px; padding: 6px; }
+
+    STYLE = LIQUID_GLASS_DIALOG_STYLE + """
+        QScrollArea { border: none; background: transparent; }
+        QScrollBar:vertical {
+            width: 4px; background: transparent;
+        }
+        QScrollBar::handle:vertical {
+            background: rgba(255,255,255,25); border-radius: 2px;
+            min-height: 30px;
+        }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+        QLineEdit {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 10px;
+            padding: 10px 16px;
+            color: rgba(255,255,255,0.9);
+            font-size: 18px; }"
+            font-family: 'Consolas', 'SF Mono', monospace;
+        }
+        QLineEdit:focus {
+            border-color: rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.08);
+            selection-background-color: rgba(255,255,255,0.4);
+        }
+        QComboBox {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 10px;
+            padding: 10px 16px;
+            color: rgba(255,255,255,0.9);
+            font-size: 18px; }"
+            min-width: 140px;
+        }
+        QComboBox::drop-down { border: none; width: 28px; }
+        QComboBox::down-arrow {
+            width: 0; height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 6px solid rgba(255,255,255,0.6);
+        }
+        QComboBox QAbstractItemView {
+            background: #1e1e20;
+            color: rgba(255,255,255,0.9);
+            border: 1px solid rgba(255,255,255,0.15);
+            selection-background-color: rgba(255,255,255,0.25);
+            padding: 4px;
+        }
     """
 
     def __init__(self, rules, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("应用程序规则")
-        self.setMinimumSize(500, 380)
-        self.rules = [dict(r) for r in rules]  # deep copy
+        self.setWindowTitle("分类规则管理")
+        self.setFixedSize(780, 680)
+        self.rules = [dict(r) for r in rules]
+        self._selected_idx = -1
+        self._cards = []
+        self._search_text = ""
         try:
             self.setStyleSheet(self.STYLE)
         except Exception:
@@ -289,180 +353,478 @@ class AppRulesDialog(QDialog):
         self._refresh_list()
 
     def _build_ui(self):
-        lay = QVBoxLayout(self)
-        lay.setContentsMargins(14, 14, 14, 14)
-        lay.setSpacing(10)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
 
-        info = QLabel("当以下应用程序运行时，覆盖全局回放设置：")
-        info.setStyleSheet("color: rgba(255,255,255,140); font-size: 12px;")
-        lay.addWidget(info)
+        # Header
+        header = QFrame()
+        header.setStyleSheet("background: transparent;")
+        h_lay = QHBoxLayout(header)
+        h_lay.setContentsMargins(28, 24, 28, 16)
+        h_lay.setSpacing(16)
 
-        self._list = QListWidget()
-        self._list.currentRowChanged.connect(self._on_select)
-        lay.addWidget(self._list, 1)
+        icon_wrap = QFrame()
+        icon_wrap.setFixedSize(52, 52)
+        icon_wrap.setStyleSheet(
+            "background: rgba(255,255,255,0.06); //"
+            "stop:0 rgba(255,255,255,0.6), stop:1 rgba(255,255,255,0.4));"
+            "border: 1px solid rgba(255,255,255,0.15); border-radius: 16px;"
+        )
+        icon_inner = QLabel("✧")
+        icon_inner.setAlignment(Qt.AlignCenter)
+        icon_inner.setStyleSheet("font-size: 32px; background: transparent; border: none;")
+        icon_lay = QVBoxLayout(icon_wrap)
+        icon_lay.setContentsMargins(0, 0, 0, 0)
+        icon_lay.addWidget(icon_inner)
+        h_lay.addWidget(icon_wrap)
 
-        # Edit area
-        edit_row = QHBoxLayout()
-        edit_row.addWidget(QLabel("进程名："))
+        txt_lay = QVBoxLayout()
+        txt_lay.setSpacing(4)
+        txt_lay.setContentsMargins(0, 0, 0, 0)
+        title = QLabel("分类规则管理")
+        title.setStyleSheet("color: rgba(255,255,255,0.9); font-size: 20px; font-weight: 500; background: transparent;")
+        subtitle = QLabel("当指定应用运行时，自动覆盖全局回放设置")
+        subtitle.setStyleSheet("color: rgba(255,255,255,0.4); font-size: 13px; background: transparent;")
+        txt_lay.addWidget(title)
+        txt_lay.addWidget(subtitle)
+        h_lay.addLayout(txt_lay, 1)
+
+        root.addWidget(header)
+
+        # Divider
+        div1 = QFrame()
+        div1.setFixedHeight(1)
+        div1.setStyleSheet("background: rgba(255,255,255,0.04); border-radius: 1px;")
+        div1.setStyleSheet("background: rgba(255,255,255,0.04); border-radius: 1px;")
+        div1.setStyleSheet("background: rgba(255,255,255,0.04); border-radius: 1px;")
+        root.addWidget(div1)
+
+        # Content
+        content = QFrame()
+        content.setStyleSheet("background: transparent;")
+        c_lay = QVBoxLayout(content)
+        c_lay.setContentsMargins(28, 16, 28, 10)
+        c_lay.setSpacing(10)
+
+        # Stats bar
+        stats_lay = QHBoxLayout()
+        stats_lay.setSpacing(8)
+        stats_lay.setContentsMargins(0, 0, 0, 0)
+
+        self._stat_pause = self._make_stat_chip("rgba(220,160,80,180)", "暂停", 0)
+        self._stat_run = self._make_stat_chip("rgba(100,180,120,180)", "保持运行", 0)
+        self._stat_total = self._make_stat_chip(None, "共", 0, suffix="条规则")
+
+        stats_lay.addWidget(self._stat_pause)
+        stats_lay.addWidget(self._stat_run)
+        stats_lay.addWidget(self._stat_total)
+        stats_lay.addStretch()
+        c_lay.addLayout(stats_lay)
+
+        # Search filter
+        search_frame = QFrame()
+        search_frame.setStyleSheet(
+            "background: rgba(255,255,255,0.05);"
+            "border: 1px solid rgba(255,255,255,0.12);"
+            "border-radius: 12px;"
+        )
+        search_lay = QHBoxLayout(search_frame)
+        search_lay.setContentsMargins(14, 0, 14, 0)
+        search_lay.setSpacing(10)
+        search_icon = QLabel("🔍")
+        search_icon.setStyleSheet("font-size: 18px; background: transparent; border: none; color: rgba(255,255,255,0.3);")
+        search_lay.addWidget(search_icon)
+        self._search_edit = QLineEdit()
+        self._search_edit.setPlaceholderText("搜索进程名或规则...")
+        self._search_edit.setStyleSheet(
+            "background: transparent; border: none; padding: 10px 4px;"
+            "color: rgba(255,255,255,0.85); font-size: 18px; font-family: 'Consolas', 'SF Mono', monospace;"
+        )
+        self._search_edit.textChanged.connect(self._on_search)
+        search_lay.addWidget(self._search_edit, 1)
+        c_lay.addWidget(search_frame)
+
+        # Rule list (scroll area)
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self._scroll.setMaximumHeight(240)
+
+        self._list_container = QWidget()
+        self._list_container.setStyleSheet("background: transparent;")
+        self._list_layout = QVBoxLayout(self._list_container)
+        self._list_layout.setContentsMargins(0, 0, 6, 0)
+        self._list_layout.setSpacing(8)
+        self._list_layout.addStretch()
+        self._scroll.setWidget(self._list_container)
+        c_lay.addWidget(self._scroll, 1)
+
+        # Add section
+        add_frame = QFrame()
+        add_frame.setStyleSheet(
+            "background: rgba(255,255,255,0.03);"
+            "border: 1px dashed rgba(255,255,255,0.12);"
+            "border-radius: 16px;"
+        )
+        add_lay = QVBoxLayout(add_frame)
+        add_lay.setContentsMargins(18, 16, 18, 16)
+        add_lay.setSpacing(12)
+
+        add_header = QHBoxLayout()
+        add_header.setSpacing(10)
+        add_icon = QLabel("+")
+        add_icon.setFixedSize(28, 28)
+        add_icon.setAlignment(Qt.AlignCenter)
+        add_icon.setStyleSheet(
+            "background: rgba(255,255,255,0.06);"
+            "border: 1px solid rgba(255,255,255,0.1);"
+            "border-radius: 8px; color: rgba(255,255,255,0.9); font-size: 24px; font-weight: bold;"
+        )
+        add_label = QLabel("添加新规则")
+        add_label.setStyleSheet("color: rgba(255,255,255,0.4); font-size: 13px; background: transparent;")
+        add_header.addWidget(add_icon)
+        add_header.addWidget(add_label)
+        add_header.addStretch()
+        add_lay.addLayout(add_header)
+
+        add_row = QHBoxLayout()
+        add_row.setSpacing(12)
         self._exe_edit = QLineEdit()
-        self._exe_edit.setPlaceholderText("例: chrome.exe")
-        edit_row.addWidget(self._exe_edit, 1)
-        edit_row.addWidget(QLabel("行为："))
-        self._behavior_combo = QComboBox()
-        self._behavior_combo.addItems(["暂停", "保持运行"])
-        edit_row.addWidget(self._behavior_combo)
-        lay.addLayout(edit_row)
+        self._exe_edit.setPlaceholderText("输入进程名，如 chrome.exe")
+        add_row.addWidget(self._exe_edit, 1)
 
-        # Buttons
-        btn_row = QHBoxLayout()
-        add_btn = QPushButton("➕ 添加")
+        self._behavior_combo = QComboBox()
+        self._behavior_combo.addItems(["⏸ 暂停", "▶ 保持运行"])
+        add_row.addWidget(self._behavior_combo)
+
+        add_btn = QPushButton("＋ 添加")
+        add_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        add_btn.setStyleSheet(
+            "QPushButton { background: rgba(255,255,255,0.06); //"
+            "stop:0 rgba(255,255,255,0.7), stop:1 rgba(255,255,255,0.5));"
+            "border: 1px solid rgba(255,255,255,0.6); border-radius: 10px;"
+            "padding: 10px 28px; color: rgba(255,255,255,0.95); font-size: 18px; font-weight: 500; }"
+            "QPushButton:hover { background: rgba(255,255,255,0.06); //"
+            "stop:0 rgba(255,255,255,0.9), stop:1 rgba(255,255,255,0.7));"
+            "border-color: rgba(255,255,255,0.8); }"
+        )
         add_btn.clicked.connect(self._add_rule)
-        btn_row.addWidget(add_btn)
-        del_btn = QPushButton("🗑️ 删除选中")
+        add_row.addWidget(add_btn)
+        add_lay.addLayout(add_row)
+        c_lay.addWidget(add_frame)
+
+        root.addWidget(content)
+
+        # Divider 2
+        div2 = QFrame()
+        div2.setFixedHeight(1)
+        div2.setStyleSheet("background: rgba(255,255,255,0.03); border-radius: 1px;")
+        div2.setStyleSheet("background: rgba(255,255,255,0.03); border-radius: 1px;")
+        div2.setStyleSheet("background: rgba(255,255,255,0.03); border-radius: 1px;")
+        root.addWidget(div2)
+
+        # Footer
+        footer = QFrame()
+        footer.setStyleSheet("background: transparent;")
+        f_lay = QHBoxLayout(footer)
+        f_lay.setContentsMargins(28, 16, 28, 20)
+
+        del_btn = QPushButton("🗑 删除选中")
+        del_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        del_btn.setStyleSheet(
+            "QPushButton { background: rgba(255,100,100,0.1);"
+            "border: 1px solid rgba(255,100,100,0.3);"
+            "border-radius: 12px; padding: 10px 24px; color: rgba(255,255,255,0.5); font-size: 18px; }"
+            "QPushButton:hover { background: rgba(255,100,100,0.2);"
+            "border-color: rgba(255,100,100,0.5);"
+            "color: rgba(255,140,140,0.9); }"
+        )
         del_btn.clicked.connect(self._del_rule)
-        btn_row.addWidget(del_btn)
-        btn_row.addStretch()
-        ok_btn = QPushButton("确定")
-        ok_btn.clicked.connect(self.accept)
-        btn_row.addWidget(ok_btn)
+        f_lay.addWidget(del_btn)
+
+        f_lay.addStretch()
+
         cancel_btn = QPushButton("取消")
+        cancel_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        cancel_btn.setStyleSheet(
+            "QPushButton { background: transparent;"
+            "border: 1px solid rgba(255,255,255,0.15);"
+            "border-radius: 12px; padding: 10px 24px; color: rgba(255,255,255,0.5); font-size: 18px; }"
+            "QPushButton:hover { background: rgba(255,255,255,0.06);"
+            "color: rgba(255,255,255,0.8); }"
+        )
         cancel_btn.clicked.connect(self.reject)
-        btn_row.addWidget(cancel_btn)
-        lay.addLayout(btn_row)
+        f_lay.addWidget(cancel_btn)
+
+        ok_btn = QPushButton("✓ 确定")
+        ok_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        ok_btn.setStyleSheet(
+            "QPushButton { background: rgba(255,255,255,0.06); //"
+            "stop:0 rgba(255,255,255,0.8), stop:1 rgba(255,255,255,0.6));"
+            "border: 1px solid rgba(255,255,255,0.7); border-radius: 10px;"
+            "padding: 10px 28px; color: rgba(255,255,255,0.95); font-size: 18px; font-weight: 500; }"
+            "QPushButton:hover { background: rgba(255,255,255,0.06); //"
+            "stop:0 rgba(255,255,255,1), stop:1 rgba(255,255,255,0.8));"
+            "border-color: rgba(255,255,255,0.9); }"
+        )
+        ok_btn.clicked.connect(self.accept)
+        f_lay.addWidget(ok_btn)
+
+        root.addWidget(footer)
+
+    def _make_stat_chip(self, dot_color, label, count, suffix=None):
+        frame = QFrame()
+        frame.setStyleSheet(
+            "background: rgba(255,255,255,0.06);"
+            "border: 1px solid rgba(255,255,255,0.1);"
+            "border-radius: 20px;"
+        )
+        lay = QHBoxLayout(frame)
+        lay.setContentsMargins(12, 8, 16, 8)
+        lay.setSpacing(8)
+
+        if dot_color:
+            dot = QFrame()
+            dot.setFixedSize(8, 8)
+            dot.setStyleSheet(f"background: {dot_color}; border-radius: 4px;")
+            lay.addWidget(dot)
+
+        lbl = QLabel(label)
+        lbl.setStyleSheet("color: rgba(255,255,255,0.4); font-size: 13px; background: transparent;")
+        lay.addWidget(lbl)
+
+        num = QLabel(str(count))
+        num.setStyleSheet("color: rgba(255,255,255,0.7); font-size: 14px; font-weight: 500; background: transparent;")
+        lay.addWidget(num)
+
+        if suffix:
+            sfx = QLabel(suffix)
+            sfx.setStyleSheet("color: rgba(255,255,255,0.4); font-size: 13px; background: transparent;")
+            lay.addWidget(sfx)
+
+        return frame
+
+    def _update_stats(self):
+        pause_count = sum(1 for r in self.rules if r["behavior"] == "pause")
+        run_count = len(self.rules) - pause_count
+        self._stat_pause.layout().itemAt(2).widget().setText(str(pause_count))
+        self._stat_run.layout().itemAt(2).widget().setText(str(run_count))
+        self._stat_total.layout().itemAt(1).widget().setText(str(len(self.rules)))
+
+    def _on_search(self, text):
+        self._search_text = text.strip().lower()
+        self._refresh_list()
 
     def _refresh_list(self):
-        self._list.clear()
-        for r in self.rules:
-            beh = "暂停" if r["behavior"] == "pause" else "保持运行"
-            self._list.addItem(f"{r['exe']}  →  {beh}")
+        for card in self._cards:
+            card.setParent(None)
+            card.deleteLater()
+        self._cards.clear()
+        self._selected_idx = -1
 
-    def _on_select(self, row):
-        if 0 <= row < len(self.rules):
-            r = self.rules[row]
+        while self._list_layout.count():
+            item = self._list_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        filtered = [(i, r) for i, r in enumerate(self.rules)
+                     if not self._search_text or self._search_text in r["exe"].lower()]
+
+        if not filtered:
+            empty = QLabel("暂无匹配的规则")
+            empty.setAlignment(Qt.AlignCenter)
+            empty.setStyleSheet("color: rgba(255,255,255,0.3); font-size: 18px; padding: 28px; background: transparent;")
+            self._list_layout.addWidget(empty)
+        else:
+            for i, r in filtered:
+                desc = r.get("description", "")
+                card = _RuleCard(i, r["exe"], r["behavior"], description=desc)
+                card.clicked.connect(self._on_card_clicked)
+                self._list_layout.addWidget(card)
+                self._cards.append(card)
+
+        self._list_layout.addStretch()
+        self._update_stats()
+
+    def _on_card_clicked(self, index):
+        self._selected_idx = index
+        for card in self._cards:
+            card.set_selected(card._index == index)
+        if 0 <= index < len(self.rules):
+            r = self.rules[index]
             self._exe_edit.setText(r["exe"])
-            self._behavior_combo.setCurrentText("暂停" if r["behavior"] == "pause" else "保持运行")
+            beh_text = "⏸ 暂停" if r["behavior"] == "pause" else "▶ 保持运行"
+            self._behavior_combo.setCurrentText(beh_text)
 
     def _add_rule(self):
         exe = self._exe_edit.text().strip().lower()
         if not exe:
             return
-        # Normalise: ensure .exe suffix for convenience
         if not exe.endswith(".exe"):
             exe += ".exe"
-        beh = "pause" if self._behavior_combo.currentText() == "暂停" else "keep_running"
+        combo_text = self._behavior_combo.currentText()
+        beh = "pause" if "暂停" in combo_text else "keep_running"
         self.rules.append({"exe": exe, "behavior": beh})
         self._refresh_list()
-        self._list.setCurrentRow(len(self.rules) - 1)
+        if self._cards:
+            self._on_card_clicked(len(self.rules) - 1)
 
     def _del_rule(self):
-        row = self._list.currentRow()
-        if 0 <= row < len(self.rules):
-            self.rules.pop(row)
+        if 0 <= self._selected_idx < len(self.rules):
+            self.rules.pop(self._selected_idx)
             self._refresh_list()
 
 class SettingsDialog(QDialog):
-    """完整设置对话框 — 回放 / 品质 / 常规 / 关于"""
+    """完整设置对话框 — Crystal Glass (琉璃水晶) 风格"""
 
     SETTINGS_STYLE = """
         QDialog {
-            background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-                stop:0 rgba(22,24,34,248), stop:1 rgba(14,16,22,248));
-            color: rgba(255,255,255,220);
+            background: qlineargradient(x1:0,y1:0,x2:0.3,y2:1,
+                stop:0 #12122a, stop:0.5 #0e0e22, stop:1 #14102a);
+            color: rgba(255,255,255,0.9);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+        }
+        QLabel {
+            color: rgba(255,255,255,0.8);
             font-size: 13px;
+            background: transparent;
         }
         QTabWidget::pane {
-            border: 1px solid rgba(196,180,140,50);
-            border-radius: 6px;
-            background: transparent;
-            top: -1px;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 10px;
+            background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+                stop:0 rgba(255,255,255,0.025), stop:1 rgba(255,255,255,0.01));
         }
         QTabBar::tab {
-            background: rgba(30,32,42,200);
-            color: rgba(255,255,255,140);
+            background: rgba(255,255,255,0.03);
+            color: rgba(255,255,255,0.4);
             padding: 8px 18px;
-            border: 1px solid rgba(196,180,140,30);
+            border: 1px solid rgba(255,255,255,0.04);
             border-bottom: none;
-            border-top-left-radius: 6px;
-            border-top-right-radius: 6px;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
             margin-right: 2px;
         }
         QTabBar::tab:selected {
-            background: rgba(50,54,70,220);
-            color: rgba(196,180,140,255);
-            border-bottom: 2px solid rgba(196,180,140,120);
+            background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+                stop:0 rgba(255,255,255,0.05), stop:1 rgba(255,255,255,0.02));
+            color: rgba(255,255,255,0.85);
+            border-bottom: 2px solid rgba(255,255,255,0.12);
         }
         QTabBar::tab:hover:!selected {
-            background: rgba(40,44,58,200);
-        }
-        QLabel {
-            color: rgba(255,255,255,200);
+            background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.6);
         }
         QComboBox {
-            background: rgba(35,38,50,220);
-            color: rgba(255,255,255,220);
-            border: 1px solid rgba(196,180,140,60);
-            border-radius: 4px;
-            padding: 5px 10px;
+            background: rgba(255,255,255,0.03);
+            color: rgba(255,255,255,0.75);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px;
+            padding: 6px 12px;
             min-width: 120px;
         }
-        QComboBox::drop-down {
-            border: none;
-            width: 24px;
-        }
+        QComboBox:hover { border-color: rgba(255,255,255,0.12); }
+        QComboBox::drop-down { border: none; width: 24px; }
         QComboBox::down-arrow {
             width: 0; height: 0;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-top: 6px solid rgba(196,180,140,180);
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 5px solid rgba(255,255,255,0.3);
         }
         QComboBox QAbstractItemView {
-            background: rgba(22,24,34,248);
-            color: rgba(255,255,255,220);
-            border: 1px solid rgba(196,180,140,50);
-            selection-background-color: rgba(196,180,140,60);
+            background: #12122a;
+            color: rgba(255,255,255,0.8);
+            border: 1px solid rgba(255,255,255,0.08);
+            selection-background-color: rgba(255,255,255,0.06);
         }
         QSlider::groove:horizontal {
-            height: 6px;
-            background: rgba(40,44,58,200);
-            border-radius: 3px;
+            height: 4px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 2px;
         }
         QSlider::handle:horizontal {
-            width: 16px; height: 16px;
+            width: 14px; height: 14px;
             margin: -5px 0;
-            background: qlineargradient(x1:0,y1:0,x2:1,y2:1,
-                stop:0 #C4B48C, stop:1 #9C886C);
-            border-radius: 8px;
+            background: rgba(255,255,255,0.18);
+            border-radius: 7px;
+            border: 1px solid rgba(255,255,255,0.1);
         }
         QSlider::sub-page:horizontal {
-            background: rgba(196,180,140,100);
-            border-radius: 3px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 2px;
         }
         QRadioButton {
-            color: rgba(255,255,255,200);
+            color: rgba(255,255,255,0.75);
             spacing: 8px;
         }
         QGroupBox {
             font-weight: bold;
-            color: rgba(196,180,140,200);
+            color: rgba(255,255,255,0.6);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 10px;
+            margin-top: 12px;
+            padding-top: 16px;
+        }
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            left: 12px;
+            padding: 0 6px;
         }
         QPushButton {
-            background: rgba(50,54,70,200);
-            color: rgba(255,255,255,200);
-            border: 1px solid rgba(196,180,140,60);
-            border-radius: 6px;
+            background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.75);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px;
             padding: 6px 16px;
             min-width: 60px;
         }
         QPushButton:hover {
-            background: rgba(60,64,80,220);
-            border-color: rgba(196,180,140,100);
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(255,255,255,0.1);
         }
         QPushButton:pressed {
-            background: rgba(40,44,58,220);
+            background: rgba(255,255,255,0.08);
         }
-        QDialogButtonBox QPushButton {
-            min-width: 80px;
+        QLineEdit {
+            background: rgba(255,255,255,0.03);
+            color: rgba(255,255,255,0.8);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px;
+            padding: 7px 10px;
         }
+        QLineEdit:focus { border-color: rgba(255,255,255,0.12); }
+        QSpinBox {
+            background: rgba(255,255,255,0.03);
+            color: rgba(255,255,255,0.8);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 6px;
+            padding: 4px;
+        }
+        QCheckBox {
+            color: rgba(255,255,255,0.75);
+            spacing: 8px;
+        }
+        QCheckBox::indicator {
+            width: 16px; height: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px;
+            background: rgba(255,255,255,0.03);
+        }
+        QCheckBox::indicator:checked {
+            background: rgba(100,200,150,0.4);
+            border-color: rgba(100,200,150,0.3);
+        }
+        QScrollBar:vertical {
+            background: rgba(255,255,255,0.02);
+            width: 5px; border-radius: 2px;
+        }
+        QScrollBar::handle:vertical {
+            background: rgba(255,255,255,0.08);
+            border-radius: 2px; min-height: 20px;
+        }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }
     """
 
     # 预设配置
@@ -485,23 +847,162 @@ class SettingsDialog(QDialog):
         except Exception:
             pass
 
+        # Crystal glass window icon
+        from PyQt5.QtGui import QPixmap, QPainter, QColor, QRadialGradient, QPen, QIcon
+        from PyQt5.QtCore import Qt
+        px = QPixmap(64, 64)
+        px.fill(Qt.transparent)
+        painter = QPainter(px)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        # Outer glow
+        g1 = QRadialGradient(32, 32, 30)
+        g1.setColorAt(0, QColor(120, 160, 255, 40))
+        g1.setColorAt(1, QColor(120, 160, 255, 0))
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(g1)
+        painter.drawEllipse(2, 2, 60, 60)
+        # Diamond shape
+        from PyQt5.QtGui import QPolygonF
+        from PyQt5.QtCore import QPointF
+        diamond = QPolygonF([
+            QPointF(32, 6), QPointF(58, 32), QPointF(32, 58), QPointF(6, 32)
+        ])
+        g2 = QRadialGradient(32, 28, 22)
+        g2.setColorAt(0, QColor(200, 210, 255, 200))
+        g2.setColorAt(0.5, QColor(140, 160, 220, 150))
+        g2.setColorAt(1, QColor(80, 100, 160, 100))
+        painter.setBrush(g2)
+        painter.setPen(QPen(QColor(180, 200, 255, 120), 1.5))
+        painter.drawPolygon(diamond)
+        # Inner highlight
+        inner = QPolygonF([
+            QPointF(32, 14), QPointF(48, 32), QPointF(32, 50), QPointF(16, 32)
+        ])
+        g3 = QRadialGradient(30, 26, 14)
+        g3.setColorAt(0, QColor(255, 255, 255, 80))
+        g3.setColorAt(1, QColor(255, 255, 255, 0))
+        painter.setBrush(g3)
+        painter.setPen(Qt.NoPen)
+        painter.drawPolygon(inner)
+        painter.end()
+        self.setWindowIcon(QIcon(px))
+
         self._data = dict(data) if data else {}
         self.result_settings = {}
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # ── Crystal refraction line at top ──
+        crystal_line = QFrame()
+        crystal_line.setFixedHeight(1)
+        crystal_line.setStyleSheet(
+            "background: qlineargradient(x1:0,y1:0,x2:1,y2:0,"
+            "stop:0 transparent, stop:0.35 rgba(255,255,255,0.12), "
+            "stop:0.5 rgba(255,255,255,0.18), stop:0.65 rgba(255,255,255,0.12), "
+            "stop:1 transparent);"
+        )
+        layout.addWidget(crystal_line)
+
+        # ── Title area ──
+        title_frame = QFrame()
+        title_frame.setStyleSheet("background: transparent;")
+        tf_layout = QHBoxLayout(title_frame)
+        tf_layout.setContentsMargins(24, 18, 24, 10)
+        tf_layout.setSpacing(12)
+
+        icon_lbl = QLabel("✧")
+        icon_lbl.setFixedSize(40, 40)
+        icon_lbl.setAlignment(Qt.AlignCenter)
+        icon_lbl.setStyleSheet(
+            "background: qlineargradient(x1:0,y1:0,x2:1,y2:1,"
+            "stop:0 rgba(255,255,255,0.06), stop:1 rgba(255,255,255,0.02));"
+            "border: 1px solid rgba(255,255,255,0.1);"
+            "border-radius: 12px;"
+            "font-size: 17px; color: rgba(255,255,255,0.5);"
+        )
+        tf_layout.addWidget(icon_lbl)
+
+        title_col = QVBoxLayout()
+        title_col.setSpacing(2)
+        t1 = QLabel("设置")
+        t1.setStyleSheet(
+            "font-size: 18px; font-weight: 600; color: rgba(255,255,255,0.85);"
+            "background: transparent; letter-spacing: 0.5px;"
+        )
+        title_col.addWidget(t1)
+        t2 = QLabel("回放 · 品质 · 常规 · 关于")
+        t2.setStyleSheet("font-size: 11px; color: rgba(255,255,255,0.28); background: transparent;")
+        title_col.addWidget(t2)
+        tf_layout.addLayout(title_col)
+        tf_layout.addStretch()
+        layout.addWidget(title_frame)
+
+        # ── Separator ──
+        sep = QFrame()
+        sep.setFixedHeight(1)
+        sep.setStyleSheet(
+            "background: qlineargradient(x1:0,y1:0,x2:1,y2:0,"
+            "stop:0 transparent, stop:0.1 rgba(255,255,255,0.05), "
+            "stop:0.5 rgba(255,255,255,0.05), stop:0.9 rgba(255,255,255,0.05), "
+            "stop:1 transparent);"
+        )
+        layout.addWidget(sep)
+
+        # ── Tabs ──
+        tabs_content = QFrame()
+        tabs_content.setStyleSheet("background: transparent;")
+        tabs_layout = QVBoxLayout(tabs_content)
+        tabs_layout.setContentsMargins(14, 8, 14, 0)
+        tabs_layout.setSpacing(0)
 
         tabs = QTabWidget()
         tabs.addTab(self._build_playback_tab(), "回放")
         tabs.addTab(self._build_quality_tab(), "品质")
         tabs.addTab(self._build_general_tab(), "常规")
         tabs.addTab(self._build_about_tab(), "关于")
-        layout.addWidget(tabs)
+        tabs_layout.addWidget(tabs)
+        layout.addWidget(tabs_content, 1)
 
-        btn_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        btn_box.accepted.connect(self._on_accept)
-        btn_box.rejected.connect(self.reject)
-        layout.addWidget(btn_box)
+        # ── Bottom buttons ──
+        btn_bar = QFrame()
+        btn_bar.setStyleSheet("background: transparent;")
+        btn_layout = QHBoxLayout(btn_bar)
+        btn_layout.setContentsMargins(24, 6, 24, 16)
+        btn_layout.addStretch()
+
+        btn_cancel = QPushButton("取消")
+        btn_cancel.setFixedHeight(32)
+        btn_cancel.setCursor(Qt.PointingHandCursor)
+        btn_cancel.setStyleSheet(
+            "QPushButton {"
+            "background: transparent;"
+            "border: 1px solid rgba(255,255,255,0.05);"
+            "border-radius: 7px;"
+            "color: rgba(255,255,255,0.3); font-size: 12px; padding: 0 18px;"
+            "}"
+            "QPushButton:hover { background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.5); }"
+        )
+        btn_cancel.clicked.connect(self.reject)
+        btn_layout.addWidget(btn_cancel)
+
+        btn_ok = QPushButton("确定")
+        btn_ok.setFixedHeight(32)
+        btn_ok.setCursor(Qt.PointingHandCursor)
+        btn_ok.setStyleSheet(
+            "QPushButton {"
+            "background: qlineargradient(x1:0,y1:0,x2:1,y2:1,"
+            "stop:0 rgba(255,255,255,0.06), stop:1 rgba(255,255,255,0.03));"
+            "border: 1px solid rgba(255,255,255,0.1);"
+            "border-radius: 7px;"
+            "color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 500; padding: 0 22px;"
+            "}"
+            "QPushButton:hover { background: rgba(255,255,255,0.08); }"
+        )
+        btn_ok.clicked.connect(self._on_accept)
+        btn_layout.addWidget(btn_ok)
+        layout.addWidget(btn_bar)
 
     # ── 回放标签 ──────────────────────────────────────────────
     def _build_playback_tab(self):
@@ -510,8 +1011,8 @@ class SettingsDialog(QDialog):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(10)
 
-        header = QLabel("▶ 回放")
-        header.setStyleSheet("font-size:15px; font-weight:bold; color:rgba(196,180,140,220);")
+        header = QLabel("回放")
+        header.setStyleSheet("font-size:14px; font-weight:600; color:rgba(255,255,255,0.75);")
         layout.addWidget(header)
 
         self._playback_combos = {}
@@ -565,13 +1066,22 @@ class SettingsDialog(QDialog):
         layout.setSpacing(12)
 
         header = QLabel("品质")
+        header.setStyleSheet("font-size:14px; font-weight:600; color:rgba(255,255,255,0.75);")
         layout.addWidget(header)
 
         # 画质预设
         preset_frame = QFrame()
+        preset_frame.setStyleSheet(
+            "QFrame {"
+            "background: qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+            "stop:0 rgba(255,255,255,0.025), stop:1 rgba(255,255,255,0.01));"
+            "border: 1px solid rgba(255,255,255,0.05);"
+            "border-radius: 10px;"
+            "}"
+        )
         preset_frame_layout = QVBoxLayout(preset_frame)
         preset_label = QLabel("画质预设")
-        preset_label.setStyleSheet("font-weight: bold; color: rgba(196,180,140,200);")
+        preset_label.setStyleSheet("font-weight: 600; color: rgba(255,255,255,0.6);")
         preset_frame_layout.addWidget(preset_label)
         preset_row = QHBoxLayout()
         self._preset_btns = {}
@@ -674,7 +1184,7 @@ class SettingsDialog(QDialog):
         layout.setSpacing(12)
 
         header = QLabel("常规")
-        header.setStyleSheet("font-size:15px; font-weight:bold; color:rgba(196,180,140,220);")
+        header.setStyleSheet("font-size:14px; font-weight:600; color:rgba(255,255,255,0.75);")
         layout.addWidget(header)
 
         # ── 球体皮肤 ──
@@ -752,17 +1262,17 @@ class SettingsDialog(QDialog):
 
         # Title
         name_lbl = QLabel("桌面收纳")
-        name_lbl.setStyleSheet("font-size: 22px; font-weight: bold; color: rgba(196,180,140,240);")
+        name_lbl.setStyleSheet("font-size: 22px; font-weight: bold; color: rgba(255,255,255,0.85);")
         name_lbl.setAlignment(Qt.AlignCenter)
         layout.addWidget(name_lbl)
 
         ver_lbl = QLabel(f"版本 {APP_VERSION}")
-        ver_lbl.setStyleSheet("font-size: 13px; color: rgba(255,255,255,140);")
+        ver_lbl.setStyleSheet("font-size: 12px; color: rgba(255,255,255,0.35);")
         ver_lbl.setAlignment(Qt.AlignCenter)
         layout.addWidget(ver_lbl)
 
         desc_lbl = QLabel("一款现代化的桌面组织工具，支持动态壁纸效果。")
-        desc_lbl.setStyleSheet("font-size: 13px; color: rgba(255,255,255,160);")
+        desc_lbl.setStyleSheet("font-size: 12px; color: rgba(255,255,255,0.45);")
         desc_lbl.setAlignment(Qt.AlignCenter)
         layout.addWidget(desc_lbl)
 
@@ -778,7 +1288,7 @@ class SettingsDialog(QDialog):
             "· 全局热键 Ctrl+Shift+O\n"
             "· 开机自启、系统托盘"
         )
-        features.setStyleSheet("color: rgba(255,255,255,160); font-size: 12px; line-height: 1.6;")
+        features.setStyleSheet("color: rgba(255,255,255,0.45); font-size: 12px; line-height: 1.6;")
         features.setAlignment(Qt.AlignCenter)
         layout.addWidget(features)
 
@@ -786,8 +1296,8 @@ class SettingsDialog(QDialog):
 
         # Keyboard shortcuts reference
         shortcuts = QLabel(
-            "<b style='color: rgba(196,180,140,200);'>快捷键</b><br>"
-            "<span style='color: rgba(255,255,255,140); font-size: 12px;'>"
+            "<b style='color: rgba(255,255,255,0.65);'>快捷键</b><br>"
+            "<span style='color: rgba(255,255,255,0.35); font-size: 12px;'>"
             "Ctrl+Shift+O　　全局显示/隐藏<br>"
             "Ctrl+N　　　　　新建分类<br>"
             "Ctrl+O　　　　　打开设置<br>"
@@ -796,7 +1306,12 @@ class SettingsDialog(QDialog):
             "</span>"
         )
         shortcuts.setTextFormat(Qt.RichText)
-        shortcuts.setStyleSheet("background: rgba(30,32,44,180); padding: 10px 16px; border-radius: 8px;")
+        shortcuts.setStyleSheet(
+            "background: qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+            "stop:0 rgba(255,255,255,0.025), stop:1 rgba(255,255,255,0.01));"
+            "padding: 10px 16px; border-radius: 8px;"
+            "border: 1px solid rgba(255,255,255,0.04);"
+        )
         layout.addWidget(shortcuts)
 
         layout.addStretch()

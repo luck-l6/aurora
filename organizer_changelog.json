@@ -439,5 +439,19 @@
     "changes": [
       "「工具」添加项目「CC Switch」"
     ]
+  },
+  {
+    "version": 59,
+    "time": "2026-07-03 16:51:20",
+    "changes": [
+      "更换皮肤「neon」"
+    ]
+  },
+  {
+    "version": 60,
+    "time": "2026-07-03 16:51:28",
+    "changes": [
+      "更换皮肤「crystal」"
+    ]
   }
 ]

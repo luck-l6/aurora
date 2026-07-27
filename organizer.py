@@ -49,7 +49,7 @@ from icon_utils import (
 )
 from widgets import (
     AppButton, CategoryCircleButton, RadialMenu,
-    CircleArea, ToolButton, SkinPreview
+    CircleArea, ToolButton, SkinPreview, SystemMonitorWidget, PomodoroTimer
 )
 from dialogs import SettingsDialog, CustomSkinDialog, AppRulesDialog
 
@@ -67,6 +67,10 @@ class DesktopOrganizer(QWidget):
         self._wallpaper.wallpaper_changed.connect(self._on_wallpaper_changed)
         self._setup_window()
         self._setup_ui()
+        # 系统监控小部件
+        self._system_monitor = None
+        # 番茄钟小部件
+        self._pomodoro = None
         # 应用启动设置
         self.circle_area._size_scale = self.data.get("sphere_size_scale", 1.0)
         opacity = self.data.get("window_opacity", 100)
@@ -812,40 +816,40 @@ class DesktopOrganizer(QWidget):
         act_wpmode.triggered.connect(lambda checked: self._enter_wallpaper_mode() if checked else self._exit_wallpaper_mode())
         self._act_wpmode = act_wpmode
         # ⚙ 设置
-        act_settings = tray_menu.addAction("⚙ 设置")
+        act_settings = tray_menu.addAction("  ⚙  设置")
         act_settings.triggered.connect(self._open_settings)
-        # 🔍 检查更新
-        act_update = tray_menu.addAction("🔍 检查更新")
+        # ↻ 检查更新
+        act_update = tray_menu.addAction("  ↻  检查更新")
         act_update.triggered.connect(self._check_update)
-        # 🖱 移动球环
-        act_move = tray_menu.addAction("🖱 移动球环")
+        # ✧ 移动球环
+        act_move = tray_menu.addAction("  ✧  移动球环")
         act_move.triggered.connect(self._enter_move_mode)
         # 壁纸子菜单
         wp_menu = tray_menu.addMenu("壁纸")
         wp_menu.setStyleSheet(MENU_STYLE)
-        act_wp_image = wp_menu.addAction("📷 选择图片壁纸...")
+        act_wp_image = wp_menu.addAction("  ▣  选择图片壁纸...")
         act_wp_image.triggered.connect(self._pick_wallpaper_image)
-        act_wp_video = wp_menu.addAction("🎬 选择视频壁纸...")
+        act_wp_video = wp_menu.addAction("  ▷  选择视频壁纸...")
         act_wp_video.triggered.connect(self._pick_wallpaper_video)
         wp_menu.addSeparator()
-        act_wp_color = wp_menu.addAction("🎨 纯色背景")
+        act_wp_color = wp_menu.addAction("  ●  纯色背景")
         act_wp_color.triggered.connect(self._pick_wallpaper_color)
-        act_wp_trans = wp_menu.addAction("✨ 透明模式")
+        act_wp_trans = wp_menu.addAction("  ◌  透明模式")
         act_wp_trans.triggered.connect(self._set_wallpaper_transparent)
         wp_menu.addSeparator()
-        act_wp_particles = wp_menu.addAction("✨ 粒子效果")
+        act_wp_particles = wp_menu.addAction("  ✦  粒子效果")
         act_wp_particles.triggered.connect(self._set_wallpaper_particles)
-        act_wp_gradient = wp_menu.addAction("🌈 动态渐变")
+        act_wp_gradient = wp_menu.addAction("  ◐  动态渐变")
         act_wp_gradient.triggered.connect(self._set_wallpaper_gradient)
-        act_wp_sgradient = wp_menu.addAction("🎨 静态渐变")
+        act_wp_sgradient = wp_menu.addAction("  ◑  静态渐变")
         act_wp_sgradient.triggered.connect(self._pick_wallpaper_gradient)
         tray_menu.addSeparator()
         act_log = tray_menu.addAction("变更日志")
         act_log.triggered.connect(self._show_changelog)
         tray_menu.addSeparator()
-        act_export = tray_menu.addAction("📤 导出设置")
+        act_export = tray_menu.addAction("  ↗  导出设置")
         act_export.triggered.connect(self._export_settings)
-        act_import = tray_menu.addAction("📥 导入设置")
+        act_import = tray_menu.addAction("  ↙  导入设置")
         act_import.triggered.connect(self._import_settings)
         tray_menu.addSeparator()
         act_quit = tray_menu.addAction("退出")
@@ -1466,13 +1470,15 @@ class DesktopOrganizer(QWidget):
             }
         """
 
-        # 5个功能图标按钮
+        # 7个功能图标按钮
         sidebar_btns = [
             ("O", "球体皮肤", self._pick_skin),
             ("#", "背景", self._customize_bg),
             ("=", "规则", self._show_rules_dialog),
             ("U", "撤销", self._show_undo_dialog),
             ("Q", "搜索", lambda: self.search_box.setFocus()),
+            ("M", "系统监控", self._toggle_system_monitor),
+            ("T", "番茄钟", self._toggle_pomodoro),
         ]
         self._sidebar_btns = []
         for icon, tip, handler in sidebar_btns:
@@ -1733,86 +1739,347 @@ class DesktopOrganizer(QWidget):
         return [cat["name"] for cat in self.data["categories"]]
 
     def _show_rules_dialog(self):
-        """Show rules management dialog: add/delete classification rules."""
+        """Show rules management dialog — Crystal Glass (琉璃水晶) style."""
         existing_names = self._get_category_names()
-        rules = self.data.get("app_rules", [])
+        cat_colors = {}
+        for c in self.data.get("categories", []):
+            cat_colors[c["name"]] = c.get("color", "#888888")
+
+        def _rgba(hex_color, alpha):
+            r, g, b = int(hex_color[1:3], 16), int(hex_color[3:5], 16), int(hex_color[5:7], 16)
+            return f"rgba({r},{g},{b},{alpha})"
 
         dlg = QDialog(self)
         dlg.setWindowTitle("分类规则管理")
-        dlg.resize(520, 400)
+        dlg.setFixedSize(640, 620)
         dlg.setWindowFlags(dlg.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        dlg.setStyleSheet("""
+            QDialog {
+                background: qlineargradient(x1:0,y1:0,x2:0.3,y2:1,
+                    stop:0 #12122a, stop:0.5 #0e0e22, stop:1 #14102a);
+                color: rgba(255,255,255,0.9);
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 20px;
+            }
+            QListWidget {
+                background: transparent; border: none; outline: none;
+            }
+            QListWidget::item { padding: 0px; border: none; }
+            QComboBox {
+                background: rgba(255,255,255,0.03);
+                color: rgba(255,255,255,0.7);
+                border: 1px solid rgba(255,255,255,0.06);
+                border-radius: 8px; padding: 0 10px; font-size: 13px;
+            }
+            QComboBox:hover { border-color: rgba(255,255,255,0.12); }
+            QComboBox::drop-down { border: none; width: 26px; }
+            QComboBox::down-arrow {
+                width: 0; height: 0;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 5px solid rgba(255,255,255,0.3);
+            }
+            QComboBox QAbstractItemView {
+                background: #12122a; color: rgba(255,255,255,0.85);
+                border: 1px solid rgba(255,255,255,0.08);
+                selection-background-color: rgba(255,255,255,0.06);
+                padding: 4px;
+            }
+        """)
 
         layout = QVBoxLayout(dlg)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
-        # Header
-        hdr = QLabel("当文件名包含关键词时，自动建议对应分类")
-        hdr.setStyleSheet("color:#888;font-size:12px;padding:4px 0 8px 0;")
-        layout.addWidget(hdr)
+        # ── Crystal refraction line at top ──
+        crystal_line = QFrame()
+        crystal_line.setFixedHeight(1)
+        crystal_line.setStyleSheet(
+            "background: qlineargradient(x1:0,y1:0,x2:1,y2:0,"
+            "stop:0 transparent, stop:0.35 rgba(255,255,255,0.12), "
+            "stop:0.5 rgba(255,255,255,0.18), stop:0.65 rgba(255,255,255,0.12), "
+            "stop:1 transparent);"
+        )
+        layout.addWidget(crystal_line)
 
-        # Rules list
+        # ── Title area ──
+        title_frame = QFrame()
+        title_frame.setStyleSheet("background: transparent;")
+        tf_layout = QHBoxLayout(title_frame)
+        tf_layout.setContentsMargins(28, 22, 28, 12)
+        tf_layout.setSpacing(14)
+
+        icon_lbl = QLabel("✧")
+        icon_lbl.setFixedSize(44, 44)
+        icon_lbl.setAlignment(Qt.AlignCenter)
+        icon_lbl.setStyleSheet(
+            "background: qlineargradient(x1:0,y1:0,x2:1,y2:1,"
+            "stop:0 rgba(255,255,255,0.06), stop:1 rgba(255,255,255,0.02));"
+            "border: 1px solid rgba(255,255,255,0.1);"
+            "border-radius: 13px;"
+            "font-size: 18px; color: rgba(255,255,255,0.5);"
+        )
+        tf_layout.addWidget(icon_lbl)
+
+        title_col = QVBoxLayout()
+        title_col.setSpacing(3)
+        t1 = QLabel("分类规则管理")
+        t1.setStyleSheet(
+            "font-size: 19px; font-weight: 600; color: rgba(255,255,255,0.85);"
+            "background: transparent; letter-spacing: 0.5px;"
+        )
+        title_col.addWidget(t1)
+        t2 = QLabel("文件名包含关键词时，自动建议对应分类")
+        t2.setStyleSheet("font-size: 12px; color: rgba(255,255,255,0.3); background: transparent;")
+        title_col.addWidget(t2)
+        tf_layout.addLayout(title_col)
+        tf_layout.addStretch()
+
+        rules_data = self.data.get("app_rules", [])
+        count_lbl = QLabel(f"{len(rules_data)} 条")
+        count_lbl.setStyleSheet(
+            "background: qlineargradient(x1:0,y1:0,x2:1,y2:1,"
+            "stop:0 rgba(255,255,255,0.05), stop:1 rgba(255,255,255,0.02));"
+            "border: 1px solid rgba(255,255,255,0.08);"
+            "border-radius: 10px; padding: 4px 14px;"
+            "font-size: 12px; color: rgba(255,255,255,0.4);"
+        )
+        tf_layout.addWidget(count_lbl)
+        layout.addWidget(title_frame)
+
+        # ── Separator ──
+        sep = QFrame()
+        sep.setFixedHeight(1)
+        sep.setStyleSheet(
+            "background: qlineargradient(x1:0,y1:0,x2:1,y2:0,"
+            "stop:0 transparent, stop:0.1 rgba(255,255,255,0.06), "
+            "stop:0.5 rgba(255,255,255,0.06), stop:0.9 rgba(255,255,255,0.06), "
+            "stop:1 transparent);"
+        )
+        layout.addWidget(sep)
+
+        # ── Rules list ──
+        list_container = QFrame()
+        list_container.setStyleSheet("background: transparent;")
+        lc_layout = QVBoxLayout(list_container)
+        lc_layout.setContentsMargins(22, 8, 22, 0)
+        lc_layout.setSpacing(0)
+
         list_widget = QListWidget()
-        list_widget.setAlternatingRowColors(True)
         list_widget.setStyleSheet("""
-            QListWidget { background:#1e1e2e; border:1px solid #333; border-radius:6px; }
-            QListWidget::item { padding:8px 12px; border-bottom:1px solid #2a2a3a; }
-            QListWidget::item:hover { background:#2a2a3a; }
+            QListWidget { background: transparent; border: none; outline: none; }
+            QListWidget::item { padding: 0px; border: none; }
+            QListWidget::item:selected { background: rgba(255,255,255,0.04); border-radius: 10px; }
         """)
-        layout.addWidget(list_widget)
+        list_widget.setFixedHeight(260)
+        lc_layout.addWidget(list_widget)
+        layout.addWidget(list_container)
 
         def refresh_list():
             list_widget.clear()
-            nonlocal rules
-            rules = self.data.get("app_rules", [])
-            for r in rules:
-                label = f"「{r['keyword']}」 → {r['category']}"
-                item = QListWidgetItem(label)
-                item.setData(Qt.UserRole, r)
-                list_widget.addItem(item)
+            current_rules = self.data.get("app_rules", [])
+            count_lbl.setText(f"{len(current_rules)} 条")
+            for r in current_rules:
+                kw = r.get("keyword", "")
+                cat = r.get("category", "")
+                color = cat_colors.get(cat, "#888888")
+                r_hex, g_hex, b_hex = int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
+
+                # Crystal card with colored top edge
+                card = QFrame()
+                card.setFixedHeight(44)
+                card.setStyleSheet(
+                    "QFrame {"
+                    "background: qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+                    "stop:0 rgba(255,255,255,0.03), stop:1 rgba(255,255,255,0.015));"
+                    "border: 1px solid rgba(255,255,255,0.05);"
+                    "border-radius: 12px;"
+                    "}"
+                    "QFrame:hover {"
+                    "background: qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+                    "stop:0 rgba(255,255,255,0.045), stop:1 rgba(255,255,255,0.025));"
+                    "border-color: rgba(255,255,255,0.08);"
+                    "}"
+                )
+                card_layout = QVBoxLayout(card)
+                card_layout.setContentsMargins(0, 0, 0, 0)
+                card_layout.setSpacing(0)
+
+                # Colored top edge line
+                top_line = QFrame()
+                top_line.setFixedHeight(2)
+                top_line.setStyleSheet(
+                    f"background: qlineargradient(x1:0,y1:0,x2:1,y2:0,"
+                    f"stop:0 transparent, stop:0.3 {_rgba(color, 0.3)}, "
+                    f"stop:0.5 {_rgba(color, 0.5)}, stop:0.7 {_rgba(color, 0.3)}, "
+                    f"stop:1 transparent);"
+                )
+                card_layout.addWidget(top_line)
+
+                # Content row
+                content = QFrame()
+                content.setStyleSheet("background: transparent;")
+                cw_layout = QHBoxLayout(content)
+                cw_layout.setContentsMargins(16, 0, 16, 0)
+                cw_layout.setSpacing(10)
+
+                kw_lbl = QLabel(kw)
+                kw_lbl.setStyleSheet(
+                    "font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.88);"
+                    "background: transparent;"
+                )
+                cw_layout.addWidget(kw_lbl)
+                cw_layout.addStretch()
+
+                cat_tag = QLabel(f"  {cat}  ")
+                cat_tag.setStyleSheet(
+                    f"background: {_rgba(color, 0.1)};"
+                    f"border: 1px solid {_rgba(color, 0.15)};"
+                    f"border-radius: 8px; padding: 3px 12px;"
+                    f"font-size: 12px; color: {color};"
+                )
+                cw_layout.addWidget(cat_tag)
+                card_layout.addWidget(content)
+
+                list_item = QListWidgetItem()
+                list_item.setSizeHint(card.sizeHint())
+                list_item.setData(Qt.UserRole, r)
+                list_item.setData(Qt.UserRole + 1, cat)
+                list_widget.addItem(list_item)
+                list_widget.setItemWidget(list_item, card)
 
         refresh_list()
 
-        # Add rule section
-        add_layout = QHBoxLayout()
-        lbl_kw = QLabel("关键词")
-        lbl_kw.setStyleSheet("color:#aaa;")
+        # ── Add new rule panel (glass) ──
+        add_panel = QFrame()
+        add_panel.setStyleSheet(
+            "QFrame {"
+            "background: qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+            "stop:0 rgba(255,255,255,0.025), stop:1 rgba(255,255,255,0.01));"
+            "border: 1px solid rgba(255,255,255,0.05);"
+            "border-radius: 12px;"
+            "margin: 6px 22px 0 22px;"
+            "}"
+        )
+        ap_layout = QVBoxLayout(add_panel)
+        ap_layout.setContentsMargins(16, 12, 16, 14)
+        ap_layout.setSpacing(10)
+
+        ap_hdr = QHBoxLayout()
+        ap_hdr.setSpacing(8)
+        ap_icon = QLabel("+")
+        ap_icon.setFixedSize(20, 20)
+        ap_icon.setAlignment(Qt.AlignCenter)
+        ap_icon.setStyleSheet(
+            "background: rgba(255,255,255,0.04);"
+            "border: 1px solid rgba(255,255,255,0.08);"
+            "border-radius: 5px;"
+            "font-size: 12px; color: rgba(255,255,255,0.4);"
+        )
+        ap_hdr.addWidget(ap_icon)
+        ap_lbl = QLabel("添加新规则")
+        ap_lbl.setStyleSheet("font-size: 12px; color: rgba(255,255,255,0.35); background: transparent;")
+        ap_hdr.addWidget(ap_lbl)
+        ap_hdr.addStretch()
+        ap_layout.addLayout(ap_hdr)
+
+        input_row = QHBoxLayout()
+        input_row.setSpacing(8)
+
         kw_input = QLineEdit()
-        kw_input.setPlaceholderText("如: 微信")
-        kw_input.setStyleSheet("padding:6px;background:#2a2a3a;border:1px solid #444;border-radius:4px;")
-        lbl_cat = QLabel("→ 分类")
-        lbl_cat.setStyleSheet("color:#aaa;")
+        kw_input.setPlaceholderText("输入关键词")
+        kw_input.setFixedHeight(36)
+        kw_input.setStyleSheet(
+            "QLineEdit {"
+            "background: rgba(255,255,255,0.03);"
+            "border: 1px solid rgba(255,255,255,0.06);"
+            "border-radius: 8px; padding: 0 12px;"
+            "color: rgba(255,255,255,0.8); font-size: 13px;"
+            "}"
+            "QLineEdit:focus { border-color: rgba(255,255,255,0.12); }"
+            "QLineEdit::placeholder { color: rgba(255,255,255,0.2); }"
+        )
+        input_row.addWidget(kw_input, 1)
+
         cat_combo = QComboBox()
         cat_combo.addItems(existing_names)
-        cat_combo.setStyleSheet("padding:6px;background:#2a2a3a;border:1px solid #444;border-radius:4px;")
-        btn_add_rule = QPushButton("添加")
-        btn_add_rule.setStyleSheet("""
-            QPushButton { padding:6px 16px;background:#1ABC9C;color:#fff;border:none;border-radius:4px; }
-            QPushButton:hover { background:#16A085; }
-        """)
+        cat_combo.setFixedHeight(36)
+        cat_combo.setMinimumWidth(120)
+        cat_combo.view().setStyleSheet(
+            "QAbstractItemView { background: #12122a; color: rgba(255,255,255,0.85);"
+            "border: 1px solid rgba(255,255,255,0.08);"
+            "selection-background-color: rgba(255,255,255,0.06); padding: 4px; }"
+        )
+        input_row.addWidget(cat_combo)
 
-        add_layout.addWidget(lbl_kw)
-        add_layout.addWidget(kw_input)
-        add_layout.addWidget(lbl_cat)
-        add_layout.addWidget(cat_combo)
-        add_layout.addWidget(btn_add_rule)
-        layout.addLayout(add_layout)
+        btn_add = QPushButton("添加")
+        btn_add.setFixedSize(64, 36)
+        btn_add.setCursor(Qt.PointingHandCursor)
+        btn_add.setStyleSheet(
+            "QPushButton {"
+            "background: rgba(255,255,255,0.04);"
+            "border: 1px solid rgba(255,255,255,0.08);"
+            "border-radius: 8px;"
+            "color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 500;"
+            "}"
+            "QPushButton:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85); }"
+        )
+        input_row.addWidget(btn_add)
+        ap_layout.addLayout(input_row)
+        layout.addWidget(add_panel)
 
-        # Bottom buttons
-        btn_layout = QHBoxLayout()
+        # ── Bottom buttons ──
+        btn_bar = QFrame()
+        btn_bar.setStyleSheet("background: transparent;")
+        btn_layout = QHBoxLayout(btn_bar)
+        btn_layout.setContentsMargins(26, 8, 26, 18)
+
         btn_del = QPushButton("删除选中")
-        btn_del.setStyleSheet("""
-            QPushButton { padding:6px 16px;background:#E74C3C;color:#fff;border:none;border-radius:4px; }
-            QPushButton:hover { background:#C0392B; }
-        """)
-        btn_close = QPushButton("关闭")
-        btn_close.setStyleSheet("""
-            QPushButton { padding:6px 16px;background:#444;color:#fff;border:none;border-radius:4px; }
-            QPushButton:hover { background:#555; }
-        """)
+        btn_del.setFixedHeight(32)
+        btn_del.setCursor(Qt.PointingHandCursor)
+        btn_del.setStyleSheet(
+            "QPushButton {"
+            "background: rgba(255,80,80,0.04);"
+            "border: 1px solid rgba(255,80,80,0.08);"
+            "border-radius: 7px;"
+            "color: rgba(255,120,120,0.5); font-size: 12px; padding: 0 14px;"
+            "}"
+            "QPushButton:hover { background: rgba(255,80,80,0.08); color: rgba(255,120,120,0.7); }"
+        )
         btn_layout.addWidget(btn_del)
         btn_layout.addStretch()
-        btn_layout.addWidget(btn_close)
-        layout.addLayout(btn_layout)
 
+        btn_cancel = QPushButton("取消")
+        btn_cancel.setFixedHeight(32)
+        btn_cancel.setCursor(Qt.PointingHandCursor)
+        btn_cancel.setStyleSheet(
+            "QPushButton {"
+            "background: transparent;"
+            "border: 1px solid rgba(255,255,255,0.05);"
+            "border-radius: 7px;"
+            "color: rgba(255,255,255,0.3); font-size: 12px; padding: 0 16px;"
+            "}"
+            "QPushButton:hover { background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.5); }"
+        )
+        btn_layout.addWidget(btn_cancel)
+
+        btn_ok = QPushButton("确定")
+        btn_ok.setFixedHeight(32)
+        btn_ok.setCursor(Qt.PointingHandCursor)
+        btn_ok.setStyleSheet(
+            "QPushButton {"
+            "background: qlineargradient(x1:0,y1:0,x2:1,y2:1,"
+            "stop:0 rgba(255,255,255,0.06), stop:1 rgba(255,255,255,0.03));"
+            "border: 1px solid rgba(255,255,255,0.1);"
+            "border-radius: 7px;"
+            "color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 500; padding: 0 20px;"
+            "}"
+            "QPushButton:hover { background: rgba(255,255,255,0.08); }"
+        )
+        btn_layout.addWidget(btn_ok)
+        layout.addWidget(btn_bar)
+
+        # ── Logic ──
         def add_rule():
             kw = kw_input.text().strip()
             if not kw:
@@ -1820,7 +2087,6 @@ class DesktopOrganizer(QWidget):
             target_cat = cat_combo.currentText()
             if target_cat not in existing_names:
                 return
-            # Check duplicate
             for r in self.data.get("app_rules", []):
                 if r["keyword"] == kw:
                     QMessageBox.information(dlg, "提示", f"关键词「{kw}」已存在规则")
@@ -1840,17 +2106,12 @@ class DesktopOrganizer(QWidget):
             self._save_data()
             refresh_list()
 
-        btn_add_rule.clicked.connect(add_rule)
+        btn_add.clicked.connect(add_rule)
         kw_input.returnPressed.connect(add_rule)
         btn_del.clicked.connect(delete_rule)
-        btn_close.clicked.connect(dlg.accept)
+        btn_cancel.clicked.connect(dlg.accept)
+        btn_ok.clicked.connect(dlg.accept)
 
-        dlg.setStyleSheet("""
-            QDialog { background:#1a1a2e; color:#ddd; }
-            QLabel { color:#ddd; }
-            QLineEdit { color:#ddd; }
-            QComboBox { color:#ddd; }
-        """)
         dlg.exec_()
 
     def _match_rules(self, item_name):
@@ -2071,6 +2332,44 @@ class DesktopOrganizer(QWidget):
             CategoryCircleButton._custom_skin_data = skin_data
             self.circle_area.update()
 
+    def _toggle_system_monitor(self):
+        """Toggle the system monitor widget."""
+        if self._system_monitor is None:
+            self._system_monitor = SystemMonitorWidget()
+            # Position to the right of main window, ensure it's on screen
+            pos = self.pos()
+            x = pos.x() + self.width() + 20
+            y = pos.y() + 100
+            # Ensure on screen
+            screen = QApplication.primaryScreen().geometry()
+            if x + 240 > screen.width():
+                x = pos.x() - 260
+            if y + 200 > screen.height():
+                y = screen.height() - 220
+            self._system_monitor.move(x, y)
+            self._system_monitor.show()
+        else:
+            if self._system_monitor.isVisible():
+                self._system_monitor.hide()
+            else:
+                self._system_monitor.show()
+
+    def _toggle_pomodoro(self):
+        """Toggle the Pomodoro timer widget."""
+        if self._pomodoro is None:
+            self._pomodoro = PomodoroTimer()
+        
+        if self._pomodoro.isVisible():
+            self._pomodoro.hide()
+        else:
+            # Position: centered horizontally, near top
+            screen = QApplication.primaryScreen().geometry()
+            tw = int(screen.width() * 0.55)
+            x = (screen.width() - tw) // 2
+            y = 80
+            self._pomodoro.move(x, y)
+            self._pomodoro.show()
+
     def _customize_bg(self):
         menu = QMenu(self)
         menu.setStyleSheet(MENU_STYLE)
@@ -2183,6 +2482,14 @@ class DesktopOrganizer(QWidget):
         self._force_quit = True
         self._save_data()
         self._wallpaper.cleanup()
+        # Close system monitor if open
+        if self._system_monitor is not None:
+            self._system_monitor.close()
+            self._system_monitor = None
+        # Close pomodoro timer if open
+        if self._pomodoro is not None:
+            self._pomodoro.close()
+            self._pomodoro = None
         if hasattr(self, '_tray_icon'):
             self._tray_icon.hide()
         from PyQt5.QtWidgets import QApplication

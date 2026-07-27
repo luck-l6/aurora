@@ -387,3 +387,157 @@ SPHERE_SKINS = {
         "style": "bubble",
     },
 }
+
+# ── Liquid Glass Dialog Style ──────────────────────────────────────
+LIQUID_GLASS_DIALOG_STYLE = """
+    QDialog {
+        background: #1e1e20;
+        color: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+    }
+    QLabel {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 13px;
+    }
+    QTabWidget::pane {
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.03);
+    }
+    QTabBar::tab {
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(255, 255, 255, 0.5);
+        padding: 8px 18px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-bottom: none;
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+        margin-right: 2px;
+    }
+    QTabBar::tab:selected {
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.9);
+        border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+    }
+    QTabBar::tab:hover:!selected {
+        background: rgba(255, 255, 255, 0.05);
+    }
+    QComboBox {
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        padding: 6px 12px;
+        min-width: 120px;
+    }
+    QComboBox::drop-down {
+        border: none;
+        width: 24px;
+    }
+    QComboBox::down-arrow {
+        width: 0; height: 0;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 6px solid rgba(255, 255, 255, 0.4);
+    }
+    QComboBox QAbstractItemView {
+        background: #1e1e20;
+        color: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        selection-background-color: rgba(255, 255, 255, 0.08);
+    }
+    QSlider::groove:horizontal {
+        height: 6px;
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 3px;
+    }
+    QSlider::handle:horizontal {
+        width: 16px; height: 16px;
+        margin: -5px 0;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    QSlider::sub-page:horizontal {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+    }
+    QRadioButton {
+        color: rgba(255, 255, 255, 0.8);
+        spacing: 8px;
+    }
+    QGroupBox {
+        font-weight: bold;
+        color: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 10px;
+        margin-top: 12px;
+        padding-top: 16px;
+    }
+    QGroupBox::title {
+        subcontrol-origin: margin;
+        left: 12px;
+        padding: 0 6px;
+    }
+    QPushButton {
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        padding: 6px 16px;
+        min-width: 60px;
+    }
+    QPushButton:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.12);
+    }
+    QPushButton:pressed {
+        background: rgba(255, 255, 255, 0.12);
+    }
+    QLineEdit {
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        padding: 7px 10px;
+    }
+    QLineEdit:focus {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+    QSpinBox {
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 6px;
+        padding: 4px;
+    }
+    QCheckBox {
+        color: rgba(255, 255, 255, 0.8);
+        spacing: 8px;
+    }
+    QCheckBox::indicator {
+        width: 16px;
+        height: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.04);
+    }
+    QCheckBox::indicator:checked {
+        background: rgba(102, 187, 106, 0.5);
+        border-color: rgba(102, 187, 106, 0.4);
+    }
+    QScrollBar:vertical {
+        background: rgba(255, 255, 255, 0.02);
+        width: 6px;
+        border-radius: 3px;
+    }
+    QScrollBar::handle:vertical {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+        min-height: 20px;
+    }
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+        height: 0px;
+    }
+"""

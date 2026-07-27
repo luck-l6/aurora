@@ -7,7 +7,7 @@ import os
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QFrame, QMenu, QInputDialog, QColorDialog, QMessageBox,
-    QLineEdit, QDialog, QDialogButtonBox, QFileDialog
+    QLineEdit, QDialog, QDialogButtonBox, QFileDialog, QApplication
 )
 from PyQt5.QtCore import Qt, QPoint, QSize, pyqtSignal, QRectF, QTimer, QThread, QEvent
 from PyQt5.QtGui import (
@@ -27,16 +27,16 @@ class AppButton(QPushButton):
         super().__init__(parent)
         self.app_name = name
         self.base_color = QColor(color)
-        self.setFixedSize(140, 140)
+        self.setFixedSize(120, 120)
         self.setCursor(Qt.PointingHandCursor)
         self._hover = False
-        self._anim_opacity = 1.0  # animation opacity, painted directly
-        self._anim_scale = 1.0    # animation scale, 0~1
+        self._anim_opacity = 1.0
+        self._anim_scale = 1.0
         self._icon_pixmap = get_icon_pixmap(icon_path, 48) if icon_path else None
         if not self._icon_pixmap:
             label = name[:2] if len(name) >= 2 else name
             self.setText(label)
-        self._cached_sphere = None  # cached pixmap
+        self._cached_sphere = None
         self._cached_hover = None
 
     def _get_skin(self):
@@ -46,7 +46,7 @@ class AppButton(QPushButton):
         return SPHERE_SKINS.get(skin_key, SPHERE_SKINS["default"])
 
     def _render_cache(self):
-        """Pre-render sphere body to pixmap for fast painting (simplified for speed)."""
+        """Render sphere with liquid glass effect."""
         w, h = self.width(), self.height()
         pixmap = QPixmap(w, h)
         pixmap.fill(Qt.transparent)
@@ -54,46 +54,60 @@ class AppButton(QPushButton):
         p.setRenderHint(QPainter.Antialiasing, True)
         c = self.base_color
         r = min(w, h) / 2.0
+        cx, cy = w / 2, h / 2
 
-        # Simplified gradient - single radial gradient for speed
-        grad = QRadialGradient(w * 0.4, h * 0.35, r * 0.8, w * 0.5, h * 0.5, r)
+        # Main sphere body with gradient
         hh, ss, vv, _ = c.getHsv()
-        # Bright highlight
-        grad.setColorAt(0.0, QColor.fromHsv(hh, min(255, ss + 20), min(255, vv + 60), 255))
-        # Mid tone
-        grad.setColorAt(0.4, c)
-        # Dark edge
-        grad.setColorAt(0.85, QColor.fromHsv(hh, ss, max(0, int(vv * 0.4)), 240))
-        # Shadow
-        grad.setColorAt(1.0, QColor.fromHsv(hh, ss, max(0, int(vv * 0.15)), 200))
+        grad = QRadialGradient(cx * 0.85, cy * 0.7, r * 0.2, cx, cy, r)
+        grad.setColorAt(0.0, QColor.fromHsv(hh, min(255, ss + 30), min(255, vv + 80), 255))
+        grad.setColorAt(0.3, c)
+        grad.setColorAt(0.7, QColor.fromHsv(hh, ss, max(0, int(vv * 0.5)), 240))
+        grad.setColorAt(1.0, QColor.fromHsv(hh, ss, max(0, int(vv * 0.2)), 220))
 
-        p.setBrush(grad)
         p.setPen(Qt.NoPen)
+        p.setBrush(grad)
         p.drawEllipse(2, 2, w - 4, h - 4)
 
-        # Simple rim highlight
-        p.setPen(QPen(QColor(255, 255, 255, 40), 1.5))
-        p.setBrush(Qt.NoBrush)
-        p.drawEllipse(4, 4, w - 8, h - 8)
+        # Top highlight (liquid glass)
+        highlight = QRadialGradient(cx * 0.7, cy * 0.4, r * 0.4, cx * 0.7, cy * 0.4)
+        highlight.setColorAt(0, QColor(255, 255, 255, 60))
+        highlight.setColorAt(0.5, QColor(255, 255, 255, 20))
+        highlight.setColorAt(1, QColor(255, 255, 255, 0))
+        p.setBrush(highlight)
+        p.drawEllipse(int(cx - r * 0.6), int(cy - r * 0.7), int(r * 1.2), int(r * 0.8))
 
-        # Icon or text on top
+        # Bottom reflection
+        bottom = QRadialGradient(cx, cy + r * 0.3, r * 0.5, cx, cy + r * 0.3)
+        bottom.setColorAt(0, QColor(255, 255, 255, 15))
+        bottom.setColorAt(1, QColor(255, 255, 255, 0))
+        p.setBrush(bottom)
+        p.drawEllipse(int(cx - r * 0.4), int(cy + r * 0.2), int(r * 0.8), int(r * 0.5))
+
+        # Subtle border
+        p.setPen(QPen(QColor(255, 255, 255, 50), 1))
+        p.setBrush(Qt.NoBrush)
+        p.drawEllipse(3, 3, w - 6, h - 6)
+
+        # Icon or text
         if self._icon_pixmap:
             p.save()
             clip = QPainterPath()
             clip.addEllipse(4, 4, w - 8, h - 8)
             p.setClipPath(clip)
-            ix = (w - self._icon_pixmap.width()) // 2
-            iy = (h - self._icon_pixmap.height()) // 2 - 10
-            p.drawPixmap(ix, iy, self._icon_pixmap)
+            icon_size = min(48, int(r * 0.7))
+            scaled = self._icon_pixmap.scaled(icon_size, icon_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            ix = (w - scaled.width()) // 2
+            iy = (h - scaled.height()) // 2 - 8
+            p.drawPixmap(ix, iy, scaled)
             p.restore()
             # App name below icon
-            p.setPen(QColor(255, 255, 255, 200))
-            p.setFont(QFont("Microsoft YaHei", max(7, w // 12), QFont.Bold))
-            p.drawText(QRectF(0, h * 0.58, w, h * 0.35), Qt.AlignHCenter | Qt.AlignTop, self.app_name)
+            p.setPen(QColor(255, 255, 255, 210))
+            p.setFont(QFont("Microsoft YaHei", 9, QFont.Bold))
+            p.drawText(QRectF(0, h * 0.62, w, h * 0.3), Qt.AlignHCenter | Qt.AlignTop, self.app_name)
         else:
-            # Text only - larger font
-            p.setPen(QColor(255, 255, 255, 220))
-            p.setFont(QFont("Microsoft YaHei", max(7, w // 8), QFont.Bold))
+            # Text only
+            p.setPen(QColor(255, 255, 255, 230))
+            p.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
             p.drawText(QRectF(0, 0, w, h), Qt.AlignCenter, self.app_name)
 
         p.end()
@@ -104,14 +118,14 @@ class AppButton(QPushButton):
         glow.fill(Qt.transparent)
         gp = QPainter(glow)
         gp.setRenderHint(QPainter.Antialiasing, True)
-        g = QRadialGradient(w / 2, h / 2, r + 4, w / 2, h / 2, r)
-        g.setColorAt(0.85, QColor(255, 255, 255, 0))
-        g.setColorAt(0.95, QColor(255, 255, 255, 30))
+        g = QRadialGradient(cx, cy, r + 6, cx, cy, r)
+        g.setColorAt(0.8, QColor(255, 255, 255, 0))
+        g.setColorAt(0.92, QColor(255, 255, 255, 35))
         g.setColorAt(1.0, QColor(255, 255, 255, 0))
         gp.setBrush(g)
         gp.setPen(Qt.NoPen)
-        gp.drawEllipse(-2, -2, w + 4, h + 4)
-        gp.setPen(QPen(QColor(255, 255, 255, 25), 1.2))
+        gp.drawEllipse(-4, -4, w + 8, h + 8)
+        gp.setPen(QPen(QColor(255, 255, 255, 40), 1.5))
         gp.setBrush(Qt.NoBrush)
         gp.drawEllipse(2, 2, w - 4, h - 4)
         gp.end()
@@ -174,6 +188,9 @@ class CategoryCircleButton(QPushButton):
         self._cached_hover_state = False
         self._cached_skin_key = None
         self._cached_color = None
+        # Ripple effect
+        self._ripple_phase = 0.0
+        self._ripple_active = False
         self._setup()
 
     def _setup(self):
@@ -200,12 +217,18 @@ class CategoryCircleButton(QPushButton):
         if skin_key.startswith("custom:"):
             skin_key = "custom"
         color_val = self.category_data.get("color", "#4A90D9")
+        # Also check if pulse has changed enough to invalidate
+        pulse_valid = True
+        parent = self.parent()
+        if parent and hasattr(parent, '_pulse_phase'):
+            pulse_valid = abs(parent._pulse_phase - getattr(self, '_last_pulse', 0)) < 0.15
         return (self._cached_pixmap is not None
                 and self._cached_hover_state == self._hover
                 and self._cached_skin_key == skin_key
-                and self._cached_color == color_val)
+                and self._cached_color == color_val
+                and pulse_valid)
 
-    def _render_to_cache(self, size=160):
+    def _render_to_cache(self, size=160, pulse=0.0):
         """Render the full sphere to a cached pixmap at fixed size."""
         w, h = size, size
         pixmap = QPixmap(w, h)
@@ -609,6 +632,31 @@ class CategoryCircleButton(QPushButton):
             painter.setBrush(glow_grad)
             painter.setPen(Qt.NoPen)
             painter.drawEllipse(-4, -4, w + 8, h + 8)
+            
+            # Ripple effect
+            if self._ripple_active:
+                ripple_r = r + 20 * self._ripple_phase
+                ripple_alpha = int(60 * (1 - self._ripple_phase))
+                if ripple_alpha > 0:
+                    ripple_pen = QPen(QColor(glow_color.red(), glow_color.green(),
+                                            glow_color.blue(), ripple_alpha), 2)
+                    painter.setPen(ripple_pen)
+                    painter.setBrush(Qt.NoBrush)
+                    painter.drawEllipse(int(cx - ripple_r), int(cy - ripple_r),
+                                       int(ripple_r * 2), int(ripple_r * 2))
+        
+        # ── Breathing glow (subtle pulse) ──
+        if not self._hover:
+            # Get pulse from parent
+            pulse = 0.0
+            parent = self.parent()
+            if parent and hasattr(parent, '_pulse_phase'):
+                pulse = parent._pulse_phase
+            breath_alpha = int(15 + 10 * math.sin(pulse + hash(str(id(self))) * 0.1))
+            breath_color = QColor(c.red(), c.green(), c.blue(), breath_alpha)
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(breath_color)
+            painter.drawEllipse(-2, -2, w + 4, h + 4)
 
         # ── Text - category name ──
         text_alpha = 220 if st == "water" else 240
@@ -641,10 +689,18 @@ class CategoryCircleButton(QPushButton):
     def _ensure_cache(self):
         """Make sure the cached pixmap is rendered."""
         if not self._is_cache_valid():
-            self._render_to_cache()
+            # Get pulse from parent CircleArea if available
+            pulse = 0.0
+            parent = self.parent()
+            if parent and hasattr(parent, '_pulse_phase'):
+                pulse = parent._pulse_phase
+            self._render_to_cache(pulse=pulse)
+            self._last_pulse = pulse
 
     def enterEvent(self, e):
         self._hover = True
+        self._ripple_active = True
+        self._ripple_phase = 0.0
         self._cached_pixmap = None  # invalidate cache for hover state
         self._ensure_cache()
         super().enterEvent(e)
@@ -656,6 +712,16 @@ class CategoryCircleButton(QPushButton):
         self._cached_pixmap = None  # invalidate cache for hover state
         self._ensure_cache()
         super().leaveEvent(e)
+
+    def update_ripple(self):
+        """Update ripple animation. Called by parent CircleArea."""
+        if self._ripple_active:
+            self._ripple_phase += 0.05
+            if self._ripple_phase >= 1.0:
+                self._ripple_active = False
+                self._ripple_phase = 0.0
+            self._cached_pixmap = None
+            self._ensure_cache()
 
     def contextMenuEvent(self, e):
         self.menuRequested.emit(self)
@@ -719,18 +785,19 @@ class RadialMenu(QWidget):
 
         angle_step = 360.0 / len(items)
         start_angle = -90
+        btn_size = 120  # Match AppButton size
 
         for i, item in enumerate(items):
             angle = math.radians(start_angle + i * angle_step)
-            tx = int(cx + radius * math.cos(angle) - 70)
-            ty = int(cy + radius * math.sin(angle) - 70)
+            tx = int(cx + radius * math.cos(angle) - btn_size // 2)
+            ty = int(cy + radius * math.sin(angle) - btn_size // 2)
             self._target_positions.append((tx, ty))
 
-            btn = AppButton(item["name"], color, "", self)  # defer icon loading
-            btn.move(int(cx) - 70, int(cy) - 70)  # Start at center
+            btn = AppButton(item["name"], color, "", self)
+            btn.move(int(cx) - btn_size // 2, int(cy) - btn_size // 2)
             btn.clicked.connect(lambda checked, it=item: self._open_item(it))
             btn.rightClicked.connect(lambda it=item: self._show_item_menu(it))
-            btn.hide()  # show on first animation tick to avoid burst
+            btn.hide()
             self._app_buttons.append(btn)
 
         # Load icons in background (Python thread, not QThread)
@@ -783,6 +850,7 @@ class RadialMenu(QWidget):
                 self._anim_timer.stop()
             cx = self.width() / 2
             cy = self.height() / 2
+            btn_size = 120
             n = len(self._app_buttons)
             for i, btn in enumerate(self._app_buttons):
                 if not btn.isVisible():
@@ -800,8 +868,8 @@ class RadialMenu(QWidget):
                 scale = max(0.0, min(1.15, scale))
                 if i < len(self._target_positions):
                     tx, ty = self._target_positions[i]
-                    cur_x = cx - 70 + (tx - (cx - 70)) * pos_ease
-                    cur_y = cy - 70 + (ty - (cy - 70)) * pos_ease
+                    cur_x = cx - btn_size // 2 + (tx - (cx - btn_size // 2)) * pos_ease
+                    cur_y = cy - btn_size // 2 + (ty - (cy - btn_size // 2)) * pos_ease
                     btn.move(int(cur_x), int(cur_y))
                 btn._anim_opacity = min(1.0, t * 3)
                 btn._anim_scale = scale
@@ -817,6 +885,7 @@ class RadialMenu(QWidget):
                 return
             self._pulse_phase += 0.08
             self._bounce_phase += 0.12
+            btn_size = 120
             for i, btn in enumerate(self._app_buttons):
                 if i < len(self._target_positions):
                     tx, ty = self._target_positions[i]
@@ -1159,6 +1228,19 @@ class CircleArea(QWidget):
 
         # Fly-in animation
         self._flying_in = False
+        
+        # Star particles
+        self._particles = []
+        self._particle_colors = [
+            QColor(255, 255, 255),  # white
+            QColor(255, 220, 180),  # warm white
+            QColor(180, 200, 255),  # blue tint
+            QColor(255, 200, 220),  # pink tint
+            QColor(200, 255, 220),  # green tint
+        ]
+        
+        # Pulse animation for spheres
+        self._pulse_phase = 0.0
 
         # Paint cache (avoids recreating objects every frame)
         self._cached_bg_pixmap = None
@@ -1288,6 +1370,7 @@ class CircleArea(QWidget):
 
         # Slow auto-rotate (always)
         self._angle += 0.015
+        self._pulse_phase += 0.03  # Pulse animation
         if self._mouse_active:
             ratio = (self._mouse_x - self.width() / 2) / (self.width() / 2)
             self._angle += ratio * 0.04
@@ -1301,12 +1384,66 @@ class CircleArea(QWidget):
                 any_dirty = True
             btn.hover_ox = ox
             btn.hover_oy = oy
+            # Update ripple animation
+            if btn._ripple_active:
+                btn.update_ripple()
+                any_dirty = True
 
         self._update_positions(self._btn_entries)
+        # Update particles
+        self._update_particles()
         # Only repaint if something changed
-        if any_dirty or self._dirty or not self._is_idle:
+        if any_dirty or self._dirty or not self._is_idle or self._particles:
             self._dirty = False
             self.update()
+
+    def _spawn_particles(self, x, y, count=3):
+        """Spawn star particles at position."""
+        import random
+        for _ in range(count):
+            angle = random.uniform(0, 2 * math.pi)
+            speed = random.uniform(0.5, 2.5)
+            size = random.uniform(1.5, 4.0)
+            lifetime = random.uniform(20, 50)
+            color = random.choice(self._particle_colors)
+            self._particles.append({
+                'x': x,
+                'y': y,
+                'vx': math.cos(angle) * speed,
+                'vy': math.sin(angle) * speed - 1,  # slight upward bias
+                'size': size,
+                'life': lifetime,
+                'max_life': lifetime,
+                'color': color,
+            })
+
+    def _update_particles(self):
+        """Update particle positions and remove dead ones."""
+        alive = []
+        for p in self._particles:
+            p['x'] += p['vx']
+            p['y'] += p['vy']
+            p['vy'] += 0.02  # gravity
+            p['life'] -= 1
+            if p['life'] > 0:
+                alive.append(p)
+        self._particles = alive
+
+    def _draw_particles(self, painter):
+        """Draw all active particles."""
+        for p in self._particles:
+            alpha = int(255 * (p['life'] / p['max_life']))
+            size = p['size'] * (p['life'] / p['max_life'])
+            color = QColor(p['color'])
+            color.setAlpha(alpha)
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(color)
+            painter.drawEllipse(int(p['x'] - size/2), int(p['y'] - size/2), int(size), int(size))
+            # Glow
+            glow = QColor(p['color'])
+            glow.setAlpha(alpha // 3)
+            painter.setBrush(glow)
+            painter.drawEllipse(int(p['x'] - size), int(p['y'] - size), int(size * 2), int(size * 2))
 
     def _update_positions(self, entries, flyin_t=1.0):
         """Compute 3D projections for all buttons. NO widget manipulation —
@@ -1447,6 +1584,8 @@ class CircleArea(QWidget):
             return
         self._mouse_active = True
         self._mouse_x = e.x()
+        # Spawn particles at mouse position
+        self._spawn_particles(e.x(), e.y(), 2)
 
     def leaveEvent(self, e):
         self._mouse_active = False
@@ -1660,10 +1799,7 @@ class CircleArea(QWidget):
                 painter.setBrush(QColor(255, 255, 255, dot_alpha))
                 painter.drawEllipse(dx - 1, dy - 1, 3, 3)
 
-            # 层5: 中心文字（暖金色）
-            painter.setPen(QColor(255, 255, 255, 70))
-            painter.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
-            painter.drawText(QRectF(cx - 70, cy - 20, 140, 40), Qt.AlignCenter, "桌面收纳")
+            # 层5: 中心文字（暖金色）- 已移除
 
         # ── Draw category spheres (rendered in parent, not by child widgets) ──
         painter.setRenderHint(QPainter.SmoothPixmapTransform, True)
@@ -1730,6 +1866,9 @@ class CircleArea(QWidget):
                     painter.setPen(QColor(255, 248, 235))
                     painter.drawText(tx, ty, tw, th, Qt.AlignCenter, text)
                     break
+
+        # Draw particles
+        self._draw_particles(painter)
 
         painter.end()
 
@@ -1872,4 +2011,419 @@ class SkinPreview(QWidget):
         painter.setPen(QPen(QColor(255, 255, 255, skin.get("rim_alpha", 15)), 1.5))
         painter.setBrush(Qt.NoBrush)
         painter.drawEllipse(3, 3, w - 6, h - 6)
+
+
+class SystemMonitorWidget(QWidget):
+    """Floating system monitor panel showing CPU, memory, and network speed."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setFixedSize(280, 220)
+        
+        # Data
+        self._cpu_percent = 0.0
+        self._mem_percent = 0.0
+        self._mem_used = 0.0
+        self._mem_total = 0.0
+        self._net_sent_speed = 0.0
+        self._net_recv_speed = 0.0
+        self._last_net_sent = 0.0
+        self._last_net_recv = 0.0
+        self._last_time = 0.0
+        
+        # Timer for updates
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self._update_stats)
+        self._timer.start(1000)
+        self._update_stats()
+        
+    def _update_stats(self):
+        import psutil
+        import time
+        
+        # CPU
+        self._cpu_percent = psutil.cpu_percent(interval=0)
+        
+        # Memory
+        mem = psutil.virtual_memory()
+        self._mem_percent = mem.percent
+        self._mem_used = mem.used / (1024 ** 3)
+        self._mem_total = mem.total / (1024 ** 3)
+        
+        # Network
+        net = psutil.net_io_counters()
+        current_time = time.time()
+        dt = current_time - self._last_time
+        
+        if dt > 0 and self._last_time > 0:
+            self._net_sent_speed = (net.bytes_sent - self._last_net_sent) / dt
+            self._net_recv_speed = (net.bytes_recv - self._last_net_recv) / dt
+        
+        self._last_net_sent = net.bytes_sent
+        self._last_net_recv = net.bytes_recv
+        self._last_time = current_time
+        
+        self.update()
+        
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        
+        w, h = self.width(), self.height()
+        
+        # Frosted glass background
+        painter.setPen(QPen(QColor(255, 255, 255, 20), 1))
+        painter.setBrush(QColor(20, 20, 35, 180))
+        painter.drawRoundedRect(0, 0, w, h, 12, 12)
+        
+        # Title - use rect form
+        painter.setPen(QColor(255, 255, 255, 180))
+        painter.setFont(QFont("Microsoft YaHei", 11, QFont.Bold))
+        painter.drawText(QRectF(10, 8, 200, 25), Qt.AlignVCenter, "系统监控")
+        
+        # Separator line
+        painter.setPen(QPen(QColor(255, 255, 255, 30), 1))
+        painter.drawLine(10, 35, w - 10, 35)
+        
+        # ── CPU Section ──
+        bar_x, bar_w, bar_h = 55, 180, 14
+        
+        # Label - use rect form
+        painter.setPen(QColor(255, 255, 255, 120))
+        painter.setFont(QFont("Microsoft YaHei", 9))
+        painter.drawText(QRectF(15, 42, 35, 20), Qt.AlignVCenter, "CPU")
+        
+        # Progress bar background
+        bar_y = 45
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QColor(255, 255, 255, 20))
+        painter.drawRoundedRect(bar_x, bar_y, bar_w, bar_h, 7, 7)
+        # Fill
+        fill_w = int(bar_w * self._cpu_percent / 100)
+        if fill_w > 0:
+            if self._cpu_percent < 50:
+                color = QColor(100, 200, 150, 200)
+            elif self._cpu_percent < 80:
+                color = QColor(200, 180, 100, 200)
+            else:
+                color = QColor(200, 100, 100, 200)
+            painter.setBrush(color)
+            painter.drawRoundedRect(bar_x, bar_y, fill_w, bar_h, 7, 7)
+        # Value - use rect form
+        painter.setPen(QColor(255, 255, 255, 200))
+        painter.setFont(QFont("Segoe UI", 9))
+        painter.drawText(QRectF(bar_x + bar_w + 8, bar_y, 40, bar_h), Qt.AlignVCenter, f"{int(self._cpu_percent)}%")
+        
+        # ── Memory Section ──
+        bar_y2 = 75
+        
+        # Label
+        painter.setPen(QColor(255, 255, 255, 120))
+        painter.setFont(QFont("Microsoft YaHei", 9))
+        painter.drawText(QRectF(15, 72, 35, 20), Qt.AlignVCenter, "内存")
+        
+        # Progress bar background
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QColor(255, 255, 255, 20))
+        painter.drawRoundedRect(bar_x, bar_y2, bar_w, bar_h, 7, 7)
+        # Fill
+        fill_w2 = int(bar_w * self._mem_percent / 100)
+        if fill_w2 > 0:
+            painter.setBrush(QColor(100, 150, 220, 200))
+            painter.drawRoundedRect(bar_x, bar_y2, fill_w2, bar_h, 7, 7)
+        # Value
+        painter.setPen(QColor(255, 255, 255, 200))
+        painter.setFont(QFont("Segoe UI", 9))
+        painter.drawText(QRectF(bar_x + bar_w + 8, bar_y2, 40, bar_h), Qt.AlignVCenter, f"{int(self._mem_percent)}%")
+        
+        # Memory detail - use rect form
+        painter.setPen(QColor(255, 255, 255, 140))
+        painter.setFont(QFont("Microsoft YaHei", 8))
+        painter.drawText(QRectF(55, bar_y2 + bar_h + 2, 180, 16), Qt.AlignVCenter, f"{self._mem_used:.1f} / {self._mem_total:.1f} GB")
+        
+        # ── Network Section ──
+        # Label
+        painter.setPen(QColor(255, 255, 255, 120))
+        painter.setFont(QFont("Microsoft YaHei", 9))
+        painter.drawText(QRectF(15, 122, 35, 20), Qt.AlignVCenter, "网络")
+        
+        def fmt(bps):
+            if bps < 1024:
+                return f"{bps:.0f} B/s"
+            elif bps < 1024*1024:
+                return f"{bps/1024:.1f} KB/s"
+            else:
+                return f"{bps/(1024*1024):.1f} MB/s"
+        
+        # Upload - use rect form
+        painter.setPen(QColor(150, 255, 150, 180))
+        painter.setFont(QFont("Segoe UI", 9))
+        painter.drawText(QRectF(55, 138, 180, 16), Qt.AlignVCenter, f"↑ {fmt(self._net_sent_speed)}")
+        
+        # Download - use rect form
+        painter.setPen(QColor(150, 200, 255, 180))
+        painter.drawText(QRectF(55, 158, 180, 16), Qt.AlignVCenter, f"↓ {fmt(self._net_recv_speed)}")
+        
         painter.end()
+        
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._drag_pos = event.globalPos() - self.pos()
+            event.accept()
+            
+    def mouseMoveEvent(self, event):
+        if hasattr(self, '_drag_pos') and event.buttons() & Qt.LeftButton:
+            self.move(event.globalPos() - self._drag_pos)
+            event.accept()
+            
+    def mouseReleaseEvent(self, event):
+        if hasattr(self, '_drag_pos'):
+            del self._drag_pos
+
+
+class PomodoroTimer(QWidget):
+    """Horizontal liquid glass Pomodoro timer."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        
+        # Calculate size based on screen
+        screen = QApplication.primaryScreen().geometry()
+        w = int(screen.width() * 0.55)  # 55% of screen width
+        h = int(w * 0.087)  # Maintain aspect ratio
+        self.setFixedSize(w, h)
+        
+        # Timer state
+        self._work_duration = 25 * 60
+        self._break_duration = 5 * 60
+        self._time_remaining = self._work_duration
+        self._is_running = False
+        self._is_work = True
+        self._sessions_completed = 0
+        self._session_number = 1
+        
+        # Timer
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self._tick)
+        
+        # Button hover
+        self._hover_btn = None
+        
+    def _tick(self):
+        if self._time_remaining > 0:
+            self._time_remaining -= 1
+        else:
+            self._timer.stop()
+            self._is_running = False
+            if self._is_work:
+                self._sessions_completed += 1
+                self._session_number += 1
+                self._is_work = False
+                self._time_remaining = self._break_duration
+            else:
+                self._is_work = True
+                self._time_remaining = self._work_duration
+        self.update()
+        
+    def _toggle_start(self):
+        if self._is_running:
+            self._timer.stop()
+            self._is_running = False
+        else:
+            self._timer.start(1000)
+            self._is_running = True
+        self.update()
+        
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        
+        w, h = self.width(), self.height()
+        
+        # ── Liquid glass background ──
+        # Base dark layer
+        base = QLinearGradient(0, 0, 0, h)
+        base.setColorAt(0, QColor(50, 50, 60, 180))
+        base.setColorAt(1, QColor(30, 30, 40, 200))
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(base)
+        painter.drawRoundedRect(0, 0, w, h, 20, 20)
+        
+        # Glass highlight (top)
+        highlight = QLinearGradient(0, 0, 0, h * 0.4)
+        highlight.setColorAt(0, QColor(255, 255, 255, 30))
+        highlight.setColorAt(1, QColor(255, 255, 255, 5))
+        painter.setBrush(highlight)
+        painter.drawRoundedRect(0, 0, w, int(h * 0.4), 20, 20)
+        
+        # Glass spot (top-left glow)
+        painter.setPen(Qt.NoPen)
+        spot = QRadialGradient(90, 10, 60, 90, 10)
+        spot.setColorAt(0, QColor(255, 255, 255, 35))
+        spot.setColorAt(0.5, QColor(255, 255, 255, 10))
+        spot.setColorAt(1, QColor(255, 255, 255, 0))
+        painter.setBrush(spot)
+        painter.drawEllipse(30, -20, 120, 60)
+        
+        # Bottom reflection line
+        painter.setPen(QPen(QColor(255, 255, 255, 75), 1))
+        painter.drawLine(0, h - 1, w, h - 1)
+        
+        # Border
+        border = QLinearGradient(0, 0, 0, h)
+        border.setColorAt(0, QColor(255, 255, 255, 65))
+        border.setColorAt(0.5, QColor(255, 255, 255, 45))
+        border.setColorAt(1, QColor(255, 255, 255, 20))
+        painter.setPen(QPen(QBrush(border), 1))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawRoundedRect(0, 0, w, h, 20, 20)
+        
+        # ── Left section: Session + Time ──
+        painter.setPen(QColor(255, 255, 255, 115))
+        painter.setFont(QFont("Segoe UI", int(w * 0.008)))
+        painter.drawText(QRectF(w * 0.03, h * 0.15, w * 0.15, h * 0.2), Qt.AlignLeft, f"POMODORO #{self._session_number}")
+        
+        minutes = self._time_remaining // 60
+        seconds = self._time_remaining % 60
+        time_str = f"{minutes:02d}:{seconds:02d}"
+        
+        painter.setPen(QColor(255, 255, 255, 245))
+        painter.setFont(QFont("Segoe UI", int(w * 0.03), QFont.Bold))
+        painter.drawText(QRectF(w * 0.03, h * 0.25, w * 0.22, h * 0.7), Qt.AlignLeft | Qt.AlignVCenter, time_str)
+        
+        # ── Divider line ──
+        div_grad = QLinearGradient(0, h * 0.2, 0, h * 0.8)
+        div_grad.setColorAt(0, QColor(255, 255, 255, 0))
+        div_grad.setColorAt(0.5, QColor(255, 255, 255, 50))
+        div_grad.setColorAt(1, QColor(255, 255, 255, 0))
+        painter.setPen(QPen(QBrush(div_grad), 1))
+        painter.drawLine(int(w * 0.28), int(h * 0.2), int(w * 0.28), int(h * 0.8))
+        
+        # ── Middle section: Status ──
+        if self._is_running:
+            dot_color = QColor(80, 200, 120, 220) if self._is_work else QColor(200, 160, 80, 220)
+        else:
+            dot_color = QColor(255, 255, 255, 80)
+        
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(dot_color)
+        painter.drawEllipse(int(w * 0.31), int(h * 0.4), int(h * 0.1), int(h * 0.1))
+        
+        if self._is_running:
+            status = "学习中" if self._is_work else "休息中"
+        else:
+            status = "暂停"
+        
+        painter.setPen(QColor(255, 255, 255, 190))
+        painter.setFont(QFont("Microsoft YaHei", int(w * 0.009)))
+        painter.drawText(QRectF(w * 0.34, h * 0.35, w * 0.1, h * 0.3), Qt.AlignLeft | Qt.AlignVCenter, status)
+        
+        # ── Divider line 2 ──
+        painter.setPen(QPen(QBrush(div_grad), 1))
+        painter.drawLine(int(w * 0.46), int(h * 0.2), int(w * 0.46), int(h * 0.8))
+        
+        # ── Right section: Sessions progress ──
+        painter.setPen(QColor(255, 255, 255, 115))
+        painter.setFont(QFont("Microsoft YaHei", int(w * 0.007)))
+        painter.drawText(QRectF(w * 0.49, h * 0.2, w * 0.1, h * 0.2), Qt.AlignLeft, "今日完成")
+        
+        dot_y = int(h * 0.5)
+        dot_size = int(h * 0.12)
+        dot_spacing = int(w * 0.02)
+        total_dots = 4
+        start_x = int(w * 0.49)
+        
+        for i in range(total_dots):
+            dx = start_x + i * dot_spacing
+            if i < self._sessions_completed:
+                painter.setPen(Qt.NoPen)
+                painter.setBrush(QColor(80, 200, 120, 200))
+                painter.drawEllipse(dx, dot_y, dot_size, dot_size)
+            else:
+                painter.setPen(QPen(QColor(255, 255, 255, 35), 1))
+                painter.setBrush(QColor(255, 255, 255, 20))
+                painter.drawEllipse(dx, dot_y, dot_size, dot_size)
+        
+        # ── Action button: liquid glass ──
+        btn_x = int(w * 0.82)
+        btn_y = int(h * 0.25)
+        btn_w = int(w * 0.12)
+        btn_h = int(h * 0.5)
+        
+        # Button background
+        if self._hover_btn == 'start':
+            btn_bg = QColor(255, 255, 255, 65)
+        else:
+            btn_bg = QColor(255, 255, 255, 40)
+        
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(btn_bg)
+        painter.drawRoundedRect(btn_x, btn_y, btn_w, btn_h, 16, 16)
+        
+        # Button highlight
+        btn_highlight = QLinearGradient(btn_x, btn_y, btn_x, btn_y + btn_h * 0.5)
+        btn_highlight.setColorAt(0, QColor(255, 255, 255, 40))
+        btn_highlight.setColorAt(1, QColor(255, 255, 255, 0))
+        painter.setBrush(btn_highlight)
+        painter.drawRoundedRect(btn_x, btn_y, btn_w, int(btn_h * 0.5), 16, 16)
+        
+        # Button border
+        painter.setPen(QPen(QColor(255, 255, 255, 60), 1))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawRoundedRect(btn_x, btn_y, btn_w, btn_h, 16, 16)
+        
+        # Button text
+        btn_text = "暂停" if self._is_running else "专注模式"
+        painter.setPen(QColor(255, 255, 255, 230))
+        painter.setFont(QFont("Microsoft YaHei", 11, QFont.Bold))
+        painter.drawText(QRectF(btn_x, btn_y, btn_w, btn_h), Qt.AlignCenter, btn_text)
+        
+        painter.end()
+        
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            x, y = event.x(), event.y()
+            w = self.width()
+            h = self.height()
+            btn_x = int(w * 0.82)
+            btn_y = int(h * 0.25)
+            btn_w = int(w * 0.12)
+            btn_h = int(h * 0.5)
+            
+            if btn_x <= x <= btn_x + btn_w and btn_y <= y <= btn_y + btn_h:
+                self._toggle_start()
+                return
+                
+            self._drag_pos = event.globalPos() - self.pos()
+            event.accept()
+            
+    def mouseMoveEvent(self, event):
+        if hasattr(self, '_drag_pos') and event.buttons() & Qt.LeftButton:
+            self.move(event.globalPos() - self._drag_pos)
+            event.accept()
+        else:
+            x, y = event.x(), event.y()
+            w = self.width()
+            h = self.height()
+            btn_x = int(w * 0.82)
+            btn_y = int(h * 0.25)
+            btn_w = int(w * 0.12)
+            btn_h = int(h * 0.5)
+            
+            old_hover = self._hover_btn
+            if btn_x <= x <= btn_x + btn_w and btn_y <= y <= btn_y + btn_h:
+                self._hover_btn = 'start'
+            else:
+                self._hover_btn = None
+                
+            if old_hover != self._hover_btn:
+                self.setCursor(Qt.PointingHandCursor if self._hover_btn else Qt.ArrowCursor)
+                self.update()
+            
+    def mouseReleaseEvent(self, event):
+        if hasattr(self, '_drag_pos'):
+            del self._drag_pos
