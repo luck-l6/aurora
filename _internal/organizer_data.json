@@ -1,0 +1,129 @@
+{
+  "categories": [
+    {
+      "name": "浏览器",
+      "color": "#5CB85C",
+      "items": [
+        {
+          "name": "Edge",
+          "path": "msedge.exe"
+        },
+        {
+          "name": "Chrome",
+          "path": "chrome.exe"
+        },
+        {
+          "name": "Firefox",
+          "path": "firefox.exe"
+        }
+      ]
+    },
+    {
+      "name": "办公工具",
+      "color": "#4A90D9",
+      "items": [
+        {
+          "name": "Word",
+          "path": "winword.exe"
+        },
+        {
+          "name": "Excel",
+          "path": "excel.exe"
+        },
+        {
+          "name": "PPT",
+          "path": "powerpnt.exe"
+        },
+        {
+          "name": "记事本",
+          "path": "notepad.exe"
+        }
+      ]
+    },
+    {
+      "name": "媒体工具",
+      "color": "#E8A838",
+      "items": [
+        {
+          "name": "音乐",
+          "path": ""
+        },
+        {
+          "name": "视频",
+          "path": ""
+        },
+        {
+          "name": "画图",
+          "path": "mspaint.exe"
+        }
+      ]
+    },
+    {
+      "name": "编程开发",
+      "color": "#5BC0DE",
+      "items": [
+        {
+          "name": "VSCode",
+          "path": "code.exe"
+        },
+        {
+          "name": "终端",
+          "path": "wt.exe"
+        }
+      ]
+    },
+    {
+      "name": "游戏",
+      "color": "#34495E",
+      "items": [
+        {
+          "name": "Steam",
+          "path": "steam.exe"
+        }
+      ]
+    },
+    {
+      "name": "更多应用",
+      "color": "#7F8C8D",
+      "items": [
+        {
+          "name": "计算器",
+          "path": "calc.exe"
+        },
+        {
+          "name": "截图",
+          "path": "SnippingTool.exe"
+        }
+      ]
+    },
+    {
+      "name": "开始菜单工具",
+      "color": "#D4A5C9",
+      "items": []
+    }
+  ],
+  "wallpaper": {
+    "type": "animated_gradient",
+    "path": "",
+    "color": "#1a1a2e",
+    "user_selected": true
+  },
+  "wp_focus_behavior": "pause",
+  "wp_maximized_behavior": "pause",
+  "wp_fullscreen_behavior": "pause",
+  "wp_audio_behavior": "keep_running",
+  "wp_sleep_behavior": "stop",
+  "wp_battery_behavior": "keep_running",
+  "quality_preset": "custom",
+  "target_fps": 30,
+  "antialiasing": "msaa_2x",
+  "post_processing": true,
+  "texture_resolution": "high",
+  "sphere_size_scale": 1.0,
+  "window_opacity": 50,
+  "desktop_pinned": false,
+  "sphere_skin": "crystal",
+  "bg_color": "transparent",
+  "ring_offset_x": 856,
+  "ring_offset_y": -505
+}

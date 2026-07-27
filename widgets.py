@@ -1613,6 +1613,18 @@ class CircleArea(QWidget):
             # Custom background image or color (wallpaper engine)
             bg_color = self._get_data("bg_color")
             wp_type = self._wallpaper_manager.get_type() if self._wallpaper_manager else None
+            # [DEBUG] 写文件排查走了哪个分支
+            if not hasattr(self, '_debug_logged'):
+                self._debug_logged = True
+                try:
+                    with open("debug_paint.txt", "w", encoding="utf-8") as _f:
+                        _f.write(f"wp_type={wp_type}\n")
+                        _f.write(f"bg_color={bg_color!r}\n")
+                        _f.write(f"bg_pixmap={self._bg_pixmap}\n")
+                        _f.write(f"wp_mgr={self._wallpaper_manager}\n")
+                        _f.write(f"wp_mode={getattr(self, '_wallpaper_mode', False)}\n")
+                except Exception:
+                    pass
             if self._wallpaper_manager and wp_type in ("image", "video"):
                 self._wallpaper_manager.paint(painter, self.rect())
                 painter.fillRect(0, 0, w, h, QColor(0, 0, 0, 100))
@@ -1630,7 +1642,12 @@ class CircleArea(QWidget):
             elif bg_color and bg_color != "transparent":
                 painter.fillRect(0, 0, w, h, QColor(bg_color))
             else:
-                # 银河星空背景
+                # [DEBUG] 银河星空背景
+                import logging as _dbg_log
+                _dbg_log.getLogger("debug").warning(
+                    f"PAINT_GALAXY: wp_type={wp_type}, bg_color={bg_color!r}, "
+                    f"bg_pixmap={self._bg_pixmap}, wp_mgr={self._wallpaper_manager}"
+                )
                 # 深空底色
                 painter.fillRect(0, 0, w, h, QColor(5, 5, 18))
 

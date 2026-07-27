@@ -975,7 +975,7 @@ class DesktopOrganizer(QWidget):
             pass
 
     def _is_desktop_pinned(self):
-        return self.data.get("desktop_pinned", True)
+        return self.data.get("desktop_pinned", False)
 
     def _toggle_desktop_pin(self, checked):
         self.data["desktop_pinned"] = checked

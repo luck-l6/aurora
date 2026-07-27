@@ -192,9 +192,10 @@
     }
   ],
   "wallpaper": {
-    "type": "color",
+    "type": "animated_gradient",
     "path": "",
-    "color": "#1a1a2e"
+    "color": "#1a1a2e",
+    "user_selected": true
   },
   "wp_focus_behavior": "pause",
   "wp_maximized_behavior": "pause",

@@ -269,7 +269,8 @@ DEFAULT_DATA = {
         "type": "animated_gradient",
         "path": "",
         "color": "#1a1a2e"
-    }
+    },
+    "desktop_pinned": False
 }
 
 # ── Sphere skin presets ──────────────────────────────────────────

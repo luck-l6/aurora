@@ -341,6 +341,7 @@ class WallpaperManager(QObject):
         self._color = QColor("#1a1a2e")
         self._image = QImage()
         self._image_path = ""
+        self._user_selected = False  # 用户是否手动设置过壁纸
 
         # 视频播放
         self._player = QMediaPlayer(None, QMediaPlayer.VideoSurface)
@@ -368,6 +369,7 @@ class WallpaperManager(QObject):
             return False
         self._type = self.TYPE_IMAGE
         self._image_path = str(p)
+        self._user_selected = True
         self.wallpaper_changed.emit()
         logger.info(f"壁纸设为图片: {path}")
         return True
@@ -382,6 +384,7 @@ class WallpaperManager(QObject):
         self._image_path = str(p)
         self._player.setMedia(QMediaContent(QUrl.fromLocalFile(str(p))))
         self._player.play()
+        self._user_selected = True
         self.wallpaper_changed.emit()
         logger.info(f"壁纸设为视频: {path}")
         return True
@@ -394,6 +397,7 @@ class WallpaperManager(QObject):
             self._color = QColor("#1a1a2e")
         self._type = self.TYPE_COLOR
         self._image_path = ""
+        self._user_selected = True
         self.wallpaper_changed.emit()
         logger.info(f"壁纸设为颜色: {color_str}")
 
@@ -402,6 +406,7 @@ class WallpaperManager(QObject):
         self._stop_video()
         self._type = self.TYPE_TRANSPARENT
         self._image_path = ""
+        self._user_selected = True
         self.wallpaper_changed.emit()
         logger.info("壁纸设为透明")
 
@@ -410,6 +415,7 @@ class WallpaperManager(QObject):
         self._stop_video()
         self._type = self.TYPE_PARTICLES
         self._image_path = ""
+        self._user_selected = True
         self.wallpaper_changed.emit()
         logger.info("壁纸设为粒子效果")
 
@@ -419,6 +425,7 @@ class WallpaperManager(QObject):
         self._animated_gradient.set_colors(base, accent)
         self._type = self.TYPE_ANIMATED_GRADIENT
         self._image_path = ""
+        self._user_selected = True
         self.wallpaper_changed.emit()
         logger.info("壁纸设为动态渐变")
 
@@ -486,6 +493,8 @@ class WallpaperManager(QObject):
         if self._type == self.TYPE_ANIMATED_GRADIENT:
             state["base_color"] = self._animated_gradient._base_color.name()
             state["accent_color"] = self._animated_gradient._accent_color.name()
+        if self._user_selected:
+            state["user_selected"] = True
         return state
 
     def restore_state(self, state):
@@ -493,6 +502,9 @@ class WallpaperManager(QObject):
         if not state:
             return
         wp_type = state.get("type", self.TYPE_COLOR)
+        # 如果用户没有手动设置过壁纸，保持默认 animated_gradient
+        if not state.get("user_selected") and wp_type == self.TYPE_COLOR:
+            return
         if wp_type == self.TYPE_IMAGE:
             self.set_image(state.get("path", ""))
         elif wp_type == self.TYPE_VIDEO:

@@ -6,6 +6,17 @@ import faulthandler
 log = open("crash.log", "w", encoding="utf-8")
 faulthandler.enable(file=log)
 
+# Debug logging for paintEvent
+import logging
+logging.basicConfig(
+    level=logging.WARNING,
+    format="%(name)s %(levelname)s: %(message)s",
+    handlers=[
+        logging.FileHandler("debug_paint.log", encoding="utf-8"),
+        logging.StreamHandler(log)
+    ]
+)
+
 import PyQt5
 _pyqt5_dir = os.path.dirname(PyQt5.__file__)
 _plugins_path = os.path.join(_pyqt5_dir, "Qt5", "plugins")
