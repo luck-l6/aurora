@@ -478,11 +478,15 @@ class WallpaperManager(QObject):
 
     def get_state(self):
         """返回可序列化的状态字典"""
-        return {
+        state = {
             "type": self._type,
             "path": self._image_path,
             "color": self._color.name()
         }
+        if self._type == self.TYPE_ANIMATED_GRADIENT:
+            state["base_color"] = self._animated_gradient._base_color.name()
+            state["accent_color"] = self._animated_gradient._accent_color.name()
+        return state
 
     def restore_state(self, state):
         """从状态字典恢复壁纸"""
@@ -495,6 +499,12 @@ class WallpaperManager(QObject):
             self.set_video(state.get("path", ""))
         elif wp_type == self.TYPE_TRANSPARENT:
             self.set_transparent()
+        elif wp_type == self.TYPE_PARTICLES:
+            self.set_particles()
+        elif wp_type == self.TYPE_ANIMATED_GRADIENT:
+            base = state.get("base_color", "#1a1a2e")
+            accent = state.get("accent_color", "#2a1a3e")
+            self.set_animated_gradient(base, accent)
         else:
             self.set_color(state.get("color", "#1a1a2e"))
 
