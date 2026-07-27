@@ -1220,11 +1220,11 @@ class DesktopOrganizer(QWidget):
         self._do_check_update(show_msg=False)
 
     def _do_check_update(self, show_msg=False):
-        """统一的更新检查逻辑"""
+        """统一的更新检查逻辑 — 支持下载安装"""
         from PyQt5.QtCore import QThread, pyqtSignal
 
         class _UpdateChecker(QThread):
-            finished = pyqtSignal(str, str)
+            finished = pyqtSignal(str, str, str)  # tag, html_url, zip_url
 
             def run(self):
                 try:
@@ -1236,29 +1236,78 @@ class DesktopOrganizer(QWidget):
                         data = _json.loads(resp.read().decode())
                         tag = data.get("tag_name", "")
                         html_url = data.get("html_url", "")
-                        self.finished.emit(tag, html_url)
+                        # 找zip下载链接
+                        zip_url = ""
+                        for asset in data.get("assets", []):
+                            name = asset.get("name", "")
+                            if name.endswith(".zip") and "DesktopOrganizer" in name:
+                                zip_url = asset.get("browser_download_url", "")
+                                break
+                        self.finished.emit(tag, html_url, zip_url)
                 except Exception:
-                    self.finished.emit("", "")
+                    self.finished.emit("", "", "")
+
+        class _Downloader(QThread):
+            progress = pyqtSignal(int)  # 0-100
+            finished = pyqtSignal(bool, str)  # success, message
+
+            def __init__(self, zip_url, save_path):
+                super().__init__()
+                self._url = zip_url
+                self._path = save_path
+
+            def run(self):
+                try:
+                    import urllib.request
+                    req = urllib.request.Request(self._url, headers={"User-Agent": "DesktopOrganizer"})
+                    with urllib.request.urlopen(req, timeout=60) as resp:
+                        total = int(resp.headers.get("Content-Length", 0))
+                        downloaded = 0
+                        chunk_size = 8192
+                        with open(self._path, "wb") as f:
+                            while True:
+                                chunk = resp.read(chunk_size)
+                                if not chunk:
+                                    break
+                                f.write(chunk)
+                                downloaded += len(chunk)
+                                if total > 0:
+                                    self.progress.emit(int(downloaded * 100 / total))
+                        self.finished.emit(True, self._path)
+                except Exception as e:
+                    self.finished.emit(False, str(e))
 
         def _strip_v(ver):
             """Safely remove leading 'v' prefix."""
             return ver[1:] if ver.startswith("v") else ver
 
-        def on_check_done(latest, url):
+        def _version_gt(a, b):
+            """比较版本号 a > b"""
+            try:
+                av = [int(x) for x in _strip_v(a).split(".")]
+                bv = [int(x) for x in _strip_v(b).split(".")]
+                return av > bv
+            except:
+                return a != b
+
+        def on_check_done(latest, html_url, zip_url):
             if not latest:
                 if show_msg:
                     QMessageBox.information(self, "检查更新", "无法检查更新，请检查网络连接。")
                 return
-            current = _strip_v(APP_VERSION)
-            if _strip_v(latest) != current:
+            current = APP_VERSION
+            if _version_gt(latest, current):
+                # 有新版本 → 询问下载
                 if show_msg:
                     reply = QMessageBox.information(
                         self, "发现新版本",
-                        f"当前版本: v{current}\n最新版本: {latest}\n\n是否打开下载页面？",
+                        f"当前版本: v{current}\n最新版本: {latest}\n\n是否下载并安装？",
                         QMessageBox.Yes | QMessageBox.No)
-                    if reply == QMessageBox.Yes and url:
+                    if reply == QMessageBox.Yes and zip_url:
+                        _start_download(latest, zip_url)
+                    elif reply == QMessageBox.Yes and html_url:
                         import webbrowser
-                        webbrowser.open(url)
+                        webbrowser.open(html_url)
                 else:
                     self._tray_icon.showMessage(
                         "发现新版本",
@@ -1266,6 +1315,71 @@ class DesktopOrganizer(QWidget):
                         QSystemTrayIcon.Information, 5000)
             elif show_msg:
                 QMessageBox.information(self, "检查更新", f"当前已是最新版本 v{current}")
+
+        def _start_download(version, zip_url):
+            """下载更新"""
+            import tempfile
+            save_path = os.path.join(tempfile.gettempdir(), f"DesktopOrganizer_v{version}.zip")
+            self._log(f"开始下载更新: {zip_url}")
+
+            # 显示进度对话框
+            from PyQt5.QtWidgets import QProgressDialog
+            dlg = QProgressDialog("正在下载更新...", "取消", 0, 100, self)
+            dlg.setWindowTitle(f"下载 v{version}")
+            dlg.setWindowModality(Qt.WindowModal)
+            dlg.setMinimumDuration(0)
+            dlg.setValue(0)
+
+            downloader = _Downloader(zip_url, save_path)
+
+            def on_progress(val):
+                dlg.setValue(val)
+
+            def on_done(success, msg):
+                dlg.close()
+                if success:
+                    self._log(f"下载完成: {save_path}")
+                    _install_update(version, save_path)
+                else:
+                    QMessageBox.warning(self, "下载失败", f"错误: {msg}")
+
+            downloader.progress.connect(on_progress)
+            downloader.finished.connect(on_done)
+            dlg.canceled.connect(downloader.terminate)
+            downloader.start()
+            dlg.exec_()
+
+        def _install_update(version, zip_path):
+            """安装更新 — 解压并重启"""
+            import zipfile
+            import shutil
+            try:
+                # 解压到当前目录
+                app_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+                self._log(f"解压更新到: {app_dir}")
+
+                with zipfile.ZipFile(zip_path, 'r') as z:
+                    # 检查zip结构
+                    names = z.namelist()
+                    if not names:
+                        QMessageBox.warning(self, "安装失败", "压缩包为空")
+                        return
+
+                    # 解压
+                    z.extractall(app_dir)
+
+                self._log("更新解压完成")
+                QMessageBox.information(
+                    self, "更新完成",
+                    f"v{version} 已安装！\n\n点击确定重启应用。")
+
+                # 重启应用
+                python = sys.executable
+                os.execl(python, python, *sys.argv)
+
+            except Exception as e:
+                self._log(f"安装更新失败: {e}")
+                QMessageBox.warning(self, "安装失败", f"错误: {e}")
 
         # Finish old thread before starting new one
         if hasattr(self, '_update_thread') and self._update_thread and self._update_thread.isRunning():
