@@ -1,17 +1,28 @@
+# Build artifacts
+build/
+dist/
+*.spec.bak
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
-*.bak
-crash*.log
-signal_log.txt
-exception_log.txt
-save_error.txt
-wp_error.txt
-run.log
+*.pyd
+
+# Logs
 wp_debug.log
-test_*.py
-debug_launch.py
-backups/
-collected/
-_internal/
-*.exe
+crash.log
+
+# Temp
+*.tmp
+*.bak
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
